@@ -117,7 +117,7 @@ void main()
 	float masking = V_SmithGGXCorrelated(NdotL, NdotV, roughness);
   vec3 specular = distribution * fresnel * masking / M_PI;
 
-	vec3 baseColor = texture(baseColorTexture, inUV).rgb;
+	vec3 baseColor = vec3(1.0);
   //baseColor = vec3(1.0, 1.0, 1.0);
   vec3 diffuse = baseColor * DiffuseBRDF(NdotV, NdotL, LdotH, roughness) / M_PI;
 

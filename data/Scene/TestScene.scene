@@ -1,0 +1,160 @@
+mesh
+	path	Cube.021.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos 23.559849 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.020.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos 13.559849 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.019.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos 3.559849 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.018.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -6.440151 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.017.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -16.440151 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.016.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -26.440151 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.015.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -36.440151 -3.113426 -18.040710 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.014.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -36.440151 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.006.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -26.440151 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.005.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -16.440151 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.003.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos -6.440151 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.002.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos 3.559849 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.000.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos 13.559849 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Cube.008.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	transform
+		pos 23.559849 -3.113426 1.959290 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 1.000000 5.805744 1.000000
+	boundingBox
+		min -1.000000 -4.920907 -1.000000
+		max 1.000000 1.000000 1.000000
+mesh
+	path	Plane.ply
+	materialName /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.015
+	transform
+		pos 3.273482 2.297619 -4.387335 
+		rotation 0.000000 0.000000 0.000000 -1.000000 
+		scaling 397.770416 397.770416 397.770416
+	boundingBox
+		min -1.000000 -0.000000 -1.000000
+		max 1.000000 -0.000000 1.000000
+material
+	name /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.001
+	baseColorTexture ..\..\..\Master-Thesis\particle-project\data\ElvenRuins\Game\InfinityBladeGrassLands\Environments\Plains\Env_Plains_Ruins\Materials\M_Plains_StoneWall_Inst_M_Plains_StoneWall_Inst_D.bmp
+	roughness 0.500000
+	metalMask 0
+material
+	name /Game/InfinityBladeGrassLands/Environments/Plains/Env_Plain.015
+	baseColorTexture ..\..\..\Master-Thesis\particle-project\data\ElvenRuins\Game\InfinityBladeGrassLands\Environments\Plains\Env_Plains_Ruins\Materials\M_Plains_Pillars02_Inst_M_Plains_Pillars02_Inst_D.bmp
+	roughness 0.500000
+	metalMask 0
