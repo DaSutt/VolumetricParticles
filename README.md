@@ -13,6 +13,13 @@ interface.
 
 # Build
 In the particle-project folder:  
+git clone --recursive https://github.com/DaSutt/VolumetricParticles.git
+cd VolumetricParticles/ThirdParty/shaderc/third_party
+git clone https://github.com/google/googletest.git
+git clone https://github.com/google/glslang.git
+git clone https://github.com/KhronosGroup/SPIRV-Tools.git spirv-tools
+git clone https://github.com/KhronosGroup/SPIRV-Headers.git spirv-tools/external/spirv-headers
+cd ..\..\..\
 mkdir bin  
 cd bin  
-cmake .. -G "Visual Studio 14 2015 Win64"
+cmake .. -G "Visual Studio 15 2017 Win64"
