@@ -1,0 +1,108 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#version 450
+
+struct Volume
+{
+	vec3 min;
+	float padding1;
+	vec3 max;
+	float padding2;
+};
+
+layout(set = 0, binding = 0, rgba16f) uniform image3D scatteringExtinctionGrid_;
+layout(set = 0, binding = 1) buffer volumeBuffer
+{
+	Volume data[];
+} volumes_;
+layout(set = 0, binding = 2) buffer volumeIndices
+{
+	int data[];
+} indices_;
+
+layout(set = 0, binding = 3) uniform medium
+{
+	float scattering_;
+	float extinction_;
+	float phaseG_;
+	int resolution_;
+  int imageResolutionOffset_;
+};
+
+layout(push_constant) uniform NodePushConstant
+{
+	int indexStart;
+	int indexEnd;
+	int imageIndex;
+} perNode_;
+
+ivec3 CalcImageOffset(int imageIndex)
+{
+	ivec3 imageOffset;
+	imageOffset.z = imageIndex / (resolution_ * resolution_);
+	imageOffset.y = (imageIndex / resolution_) % resolution_;
+	imageOffset.x = imageIndex % resolution_;
+	return imageOffset;
+}
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+	ivec3 imageOffset = CalcImageOffset(perNode_.imageIndex);
+	ivec3 texOffset = imageOffset * imageResolutionOffset_ + 1;
+
+	vec4 data = vec4(scattering_, extinction_, phaseG_, 0.0f);
+  
+  //Test store the image index as scattering values  
+  //vec4 data = vec4(imageOffset / float(resolution_), 0.0f);
+	for(int x = texOffset.x; x < texOffset.x + 16; ++x)
+	{
+		for(int y = texOffset.y; y < texOffset.y + 16; ++y)
+		{
+			for(int z = texOffset.z; z < texOffset.z + 16; ++z)
+			{
+				vec4 currValue = imageLoad(scatteringExtinctionGrid_, ivec3(x,y,z));
+				imageStore(scatteringExtinctionGrid_, ivec3(x,y,z), data + currValue);
+			}
+		}
+	}
+	//imageStore(scatteringExtinctionGrid_, ivec3(0,0,0), vec4(imageOffset / 16.0, 1));
+	/*for(int i = perNode_.indexStart; i <= perNode_.indexEnd; ++i)
+	{
+		ivec3 imageMinPos = max(imageOffset, ivec3(floor(imageOffset + volumes_.data[i].min * 16)));
+		ivec3 imageMaxPos =	min(imageOffset + 16, ivec3(floor(imageOffset + volumes_.data[i].max * 16)));
+		for(int x = imageMinPos.x; x < imageMaxPos.x; ++x)
+		{
+			for(int y = imageMinPos.y; y < imageMaxPos.y; ++y)
+			{
+				for(int z = imageMinPos.z; z < imageMaxPos.z; ++z)
+				{
+					//vec4 currValue = imageLoad(scatteringExtinctionGrid_, ivec3(x,y,z));
+					imageStore(scatteringExtinctionGrid_, ivec3(x,y,z), data);
+				}
+			}
+		}
+	}*/
+}

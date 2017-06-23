@@ -1,0 +1,132 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#version 450
+
+const int IMAGE_RESOLUTION = 17;
+
+const bool FILL_NODE_PARTIAL = false;
+const int NODE_START = 7;
+const int NODE_END = 8;
+
+const bool OVERWRITE_NODE_VALUE = false;
+const float SCATTERING = 100.0f;
+const float ABSORPTION = 0.0f;
+const float PHASEG = 0.0f;
+
+const bool FILL_ONLY_ACTIVE_CELLS = false;
+
+layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
+
+layout(set = 0, binding = 1) uniform cbData
+{
+  int imageResolutionOffset;
+  int imageResolution;
+  int atlasSideLength;
+} cb_;
+
+layout(push_constant) uniform debugData
+{
+  ivec3 imageOffset;
+  int activeNode;
+  float scattering;
+  float extinction;
+  float phaseG;
+} debugData_;
+
+ivec3 CalcOffset(int index)
+{
+  ivec3 offset;
+  const int res = cb_.atlasSideLength;
+  offset.z = index / (res * res);
+  offset.y = (index / res) % res;
+  offset.x = index % res;
+  return offset;
+}
+
+vec3 CalcImageColor(ivec3 offset)
+{
+  return vec3(offset) / float(cb_.atlasSideLength);
+}
+
+layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
+void main()
+{
+  //Fill debug node only
+  if(debugData_.activeNode == 1)
+  {
+    for(int z = 0; z < cb_.imageResolution; ++z)
+    {
+      ivec3 position = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
+      
+      if(FILL_NODE_PARTIAL)
+      {
+        if(min(min(position.x, position.y), position.z) < NODE_START ||
+          max(max(position.x, position.y), position.z) >= NODE_END) 
+        {
+          continue;
+        }
+      }  
+      
+      const ivec3 imagePos = debugData_.imageOffset + position;
+      vec4 imageColor = vec4(debugData_.scattering, debugData_.extinction, debugData_.phaseG, 0.0f);
+      
+      if(OVERWRITE_NODE_VALUE)
+      {
+        const float extinction = SCATTERING + ABSORPTION;
+        imageColor = vec4(SCATTERING, extinction, PHASEG, 0.0);
+      }
+      imageStore(imageAtlas_, imagePos, imageColor);
+    }
+  }
+  //Fill all nodes with their image indices
+  else
+  {
+    const int imageIndex = int(gl_WorkGroupID.x);
+    const ivec3 imageOffset = CalcOffset(imageIndex);
+    
+    const vec4 imageColor = vec4(CalcImageColor(imageOffset), 1.0f);
+    
+    //Calculate texel coords inside the node without the borders
+    ivec3 texelOffset = imageOffset * cb_.imageResolutionOffset + ivec3(1);
+    for(int z = 0; z < cb_.imageResolution; ++z)
+    {
+      const ivec3 position = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
+      const ivec3 texelCoord = texelOffset + position;
+      
+      if(FILL_ONLY_ACTIVE_CELLS)
+      {
+        vec4 previousValue = imageLoad(imageAtlas_, texelCoord);
+        if(previousValue.x != 0 || previousValue.y != 0)
+        {
+          imageStore(imageAtlas_, texelCoord, imageColor);
+        }
+      }
+      else
+      {
+        imageStore(imageAtlas_, texelCoord, imageColor);
+      }
+    }
+  }
+}

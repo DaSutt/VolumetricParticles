@@ -1,0 +1,1008 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#version 450
+
+const float NO_CHANGE = 1.0e10f;
+const float EPSILON = 0.0002f;
+const float PI_4 = 12.5663706144;
+const int MAX_LEVELS = 3;
+const bool MIPMAP_TEXTURE_DEBUGGING = false;
+const bool HARDWARE_SAMPLING = true;
+const bool DISABLED = false;
+const bool ENABLE_SHADOW_RAYS = false;
+const bool ENABLE_SHADOW_TRANSMITTANCE = true;
+const bool ENABLE_FREQUENCY_SAMPLING = true;
+const int SHADOW_RAY_COUNT = 50;
+const int DEBUG_SCREEN_DIVISION = 1;
+
+const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
+const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
+const uint IMAGE_LEAF_BIT = 1;
+const uint IMAGE_MIPMAP_BIT = 0;
+
+const int NODE_RESOLUTION = 16;
+const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+const int IMAGE_RESOLUTION_OFFSET = IMAGE_RESOLUTION + 2;
+
+const bool TEST_TRANSMITTANCE = false;
+const bool TEST_SCATTERING = false;
+
+const vec3 TEST_BOUNDING_BOX_MIN = vec3(0, -32, 0);
+const vec3 TEST_BOUNDING_BOX_MAX = vec3(160, 0, 32);
+const int TEST_UNIFORM_STEP_COUNT = 300;
+const float TEST_SCATTERING_COEFFICIENT = 0.03f;
+const float TEST_EXTINCTION_COEFFICIENT = TEST_SCATTERING_COEFFICIENT + 0.0f;
+
+const bool LEVEL_VISUALIZATION = false;
+const vec3 LEVEL_COLORS[MAX_LEVELS] = 
+{
+  vec3(0.0f, 0.0f, 1.0f),
+  vec3(0.0f, 1.0f, 0.0f),
+  vec3(1.0f, 0.0f ,0.0f)
+};
+const float LEVEL_TRANSMITTANCE = 0.5f;
+
+const bool FREQUENCY_VISUALIZATION = false;
+const float FREQUENCY_TRANSMITTANCE = 0.5f;
+
+const bool SHADOWRAY_VISUALIZATION = false;
+
+const bool TEXTURE_OUTPUT = false;
+const float TEXTURE_POSITION = 2.0f;
+const float TEXTURE_SIZE = 19.0f * 2;
+
+struct LevelData {
+  float gridCellSize;
+	int gridResolution;
+	int nodeArrayOffset;
+	int nodeSize;
+
+	int childArrayOffset;
+	float childCellSize;
+	int nodeOffset;
+	int childOffset;
+  
+  float shadowRayStepSize;
+  float texelScale;
+	vec2 PADDING;
+};
+
+struct NodeInfo {
+	uint imageOffset;
+  uint imageOffsetMipMap;
+  int childOffset;
+};
+
+//vec3 in scattering, float transmittancse
+layout(set = 0, binding = 0, rgba16f) uniform image2D raymarchingResults_;
+layout(set = 0, binding = 1, r16f) uniform image2D depthImage_;
+
+//scattering, extinction, phaseG
+layout(set = 0, binding = 2) uniform sampler3D textureAtlas_;
+layout(set = 0, binding = 3) uniform sampler2DArray shadowMap_;
+
+layout(set = 0, binding = 4) uniform sampler2DArray noiseTextureArray_;
+
+layout(set = 0, binding = 5) buffer nodeInfoBuffer {
+	NodeInfo data[];
+} nodeInfos_;
+layout(set = 0, binding = 6) buffer activeBitBuffer {
+	uint data[];
+} activeBits_;
+
+layout(set = 0, binding = 7) buffer nodeCountBuffer {
+  int data[];
+} bitCounts_;
+
+layout(set = 0, binding = 8) buffer childIndexBuffer {
+	int indices[];
+} childIndices_;
+
+layout(set = 0, binding = 9) uniform perFrameData {
+  mat4 viewPortToWorld;
+  mat4 shadowCascades[4]; //TODO select correct cascade
+  
+  vec3 shadowRayPlaneNormal;
+	float shadowRayPlaneDistance;
+  
+  vec3 irradiance;
+	float lodScale_Reciprocal;
+		
+	vec4 globalScattering;
+	vec3 gridMinPosition;
+	float jitteringScale;
+		
+	vec3 randomness;
+	float textureOffset;
+		
+	vec3 lightDirection;
+	float textureFraction;
+		
+	vec2 screenSize;
+  float nearPlane;
+	float farPlane;
+		
+	float exponentialScale;
+	float atlasTexelToNodeTexCoord;
+	float maxDepth;
+	int maxSteps;
+		
+	int atlasSideLength;
+	int maxLevel;
+	ivec2 padding;
+} raymarchData_;
+
+layout(set = 0, binding = 10) buffer perLevelData {
+	LevelData[] data;
+} levelData_;
+
+struct Ray {
+	vec3 origin;
+	float maxLength;
+	vec3 direction;
+};
+
+struct GridStatus
+{
+  ivec3 gridPos;
+  int currentLevel;
+  vec3 imageOffset;
+  int maxLevel;
+  vec4 accummTexValue;
+  int levelChangeCount;
+  vec4 lowestLevelTexValue;
+};
+
+vec4 ImageToViewport(ivec2 imagePos) {
+	vec2 imageTexCoord = vec2(imagePos) / vec2(raymarchData_.screenSize);
+	vec4 viewPortPos = vec4((imageTexCoord.x * 2.0 - 1.0), ((1.0 - imageTexCoord.y) * 2 - 1) * -1, 0.0, 1.0);
+	return viewPortPos;
+}
+
+vec3 ViewportToWorld(vec4 viewPortPos) {
+	vec4 worldPosition = raymarchData_.viewPortToWorld * viewPortPos;
+	worldPosition /= worldPosition.w;
+	return worldPosition.xyz;
+}
+
+Ray CreateRay(vec3 start, vec3 end) {
+	Ray ray;
+	ray.direction = end - start;
+	ray.maxLength = length(ray.direction);
+	ray.direction /= ray.maxLength;
+	ray.origin = start;
+	return ray;
+}
+
+float Jittering(vec2 imagePos)
+{
+  vec3 randomness = raymarchData_.randomness;
+  vec3 texCoord = vec3(vec2(imagePos) / vec2(raymarchData_.screenSize) 
+    + randomness.xy, randomness.z);
+  return texture(noiseTextureArray_, texCoord).r * raymarchData_.jitteringScale;
+}
+
+vec3 CalcDirectionReciprocal(vec3 direction) {
+	vec3 dirReciprocal;
+	dirReciprocal.x = direction.x == 0 ? NO_CHANGE : 1.0 / direction.x;
+	dirReciprocal.y = direction.y == 0 ? NO_CHANGE : 1.0 / direction.y;
+	dirReciprocal.z = direction.z == 0 ? NO_CHANGE : 1.0 / direction.z;
+	return dirReciprocal;
+}
+
+//return value x = entry, y - exit, z - 0.0 if no intersection, 1.0 if intersection
+vec3 RayBoundingBoxIntersection(vec3 origin, vec3 recDir, vec3 boxMin, vec3 boxMax) {
+	vec3 tmin = (boxMin - origin) * recDir;
+	vec3 tmax = (boxMax - origin) * recDir;
+	vec3 tNear = min(tmin, tmax);
+	vec3 tFar = max(tmin, tmax);
+
+	float entry = max(max(tNear.x, 0.0f), max(tNear.y, tNear.z));
+	float exit = min(min(tFar.x, tFar.y), tFar.z);
+	return vec3(entry, exit, (exit > 0.0 && entry < exit) ? 1.0 : 0.0);
+}
+
+float CalcExponentialDepth(int currStep, int maxSteps, float expScale)
+{
+  return exp(currStep / float(maxSteps) * expScale); 
+}
+
+float CalcExponentialDepth(int currStep)
+{
+  return exp(currStep / float(raymarchData_.maxSteps) * raymarchData_.exponentialScale) - 1.0f; 
+}
+
+float ShadowRayIntersection(vec3 rayOrigin)
+{
+  return - (dot(raymarchData_.shadowRayPlaneNormal, rayOrigin) 
+    + raymarchData_.shadowRayPlaneDistance);
+}
+
+float CalcDepth(vec2 near_FarNearDiv, int stepCount, int maxSteps)
+{
+  return near_FarNearDiv.x * pow( near_FarNearDiv.y , (stepCount / float(maxSteps))) - 1.0;
+}
+
+ivec3 CalcGridPos(vec3 gridSpacePos, vec3 gridOffset, int level)
+{
+  return ivec3((gridSpacePos - gridOffset) / levelData_.data[level].childCellSize);
+}
+
+int CalcBitIndex(ivec3 gridPos, int resolution) {
+	return (gridPos.z * resolution + gridPos.y) * resolution + gridPos.x;
+}
+
+ivec2 CalcBitIndexOffset(int bitIndex, int nodeIndex, int level)
+{
+  ivec2 bitIndexOffset;
+  bitIndexOffset.x = bitIndex / 32 + nodeIndex * 128;
+  bitIndexOffset.y = bitIndex % 32;
+  return bitIndexOffset;
+}
+
+bool BitActive(ivec2 bitIndexOffset)
+{
+  return bool((activeBits_.data[bitIndexOffset.x] >> bitIndexOffset.y) & 1);
+}
+
+int BitCounting(int bitIndex, uint bits) {
+  uint pos = bitIndex % 32;
+  uint value = bits & ((1 << pos) - 1);	//mask all higher bits
+  uint count = 0;
+
+  value = value - ((value >> 1) & 0x55555555);
+	value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
+  count = ((value + (value >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+  return int(count);
+}
+
+int GetChildNodeIndex(int bitIndexOffset, int bitIndex, int level, int parentChildOffset)
+{
+  int bitCount = bitCounts_.data[bitIndexOffset] +
+    BitCounting(bitIndex, activeBits_.data[bitIndexOffset]);
+  int childIndex = bitCount + levelData_.data[level].childOffset + parentChildOffset;
+  return childIndices_.indices[childIndex];
+}
+
+//Calculates texture coordinate int [0,1] range for current node
+vec3 CalcTexCoord(vec3 globalPos, int level) {
+	float cellSize = levelData_.data[level].gridCellSize;
+  vec3 fraction = (globalPos) / cellSize;
+	return fraction - ivec3(fraction);
+}
+
+//Calculates texture coordinate in atlas space, input texCoord [0,1]
+vec3 CalcTextureOffset(vec3 texCoord, vec3 imageOffset) {
+  return (texCoord * raymarchData_.textureFraction + raymarchData_.textureOffset) 
+    + imageOffset * raymarchData_.atlasTexelToNodeTexCoord;
+}
+
+const ivec3 offsets[8] = 
+{
+  ivec3(0,0,0),
+  ivec3(1,0,0),
+  ivec3(0,1,0),
+  ivec3(1,1,0),  
+  
+  ivec3(0,0,1),
+  ivec3(1,0,1), 
+  ivec3(0,1,1),
+  ivec3(1,1,1)
+};
+
+vec4 Interpolate(vec4 min, vec4 max, float difference)
+{
+  return min * (1.0 - difference) + max * difference;
+}
+
+vec3 CalcTexelPosition(vec3 gridPosition, vec3 imageOffset, int level)
+{
+  float cellSize = levelData_.data[level].gridCellSize;
+  //Remove offset of node inside grid
+  vec3 offset = ivec3(gridPosition / cellSize) * cellSize;
+  float texelSize = cellSize / NODE_RESOLUTION;
+  vec3 texelPosition = (gridPosition - offset) / texelSize;
+  //add image offset
+  return texelPosition + imageOffset * IMAGE_RESOLUTION_OFFSET + 1;
+} 
+
+//Performs trilinear sampling without hardware, input: normalized atlas texture coordinate
+vec4 SampleGridInterpolate(vec3 texelPosition)
+{
+  const vec3 min = floor(texelPosition);
+  const vec3 max = min + ivec3(1);
+  
+  vec3 difference = (texelPosition - min) / (max - min);
+  //difference.y = (1.0f - difference.y);
+  
+  //return texelFetch(textureAtlas_, ivec3(min), 0);
+  
+  vec4 texelValues[8];
+  for(int i = 0; i < 8; ++i)
+  {
+    const ivec3 texCoord = offsets[i] + ivec3(min);
+    texelValues[i] = texelFetch(textureAtlas_, texCoord, 0);
+  }
+  
+  vec4 xInterpolations[4];
+  for(int i = 0; i < 4; ++i)
+  {
+    const int texelIndex = i * 2;
+    xInterpolations[i] = Interpolate(texelValues[texelIndex], texelValues[texelIndex+1],
+      difference.x);
+  }
+  
+  vec4 yInterpolations[2];
+  for(int i = 0; i < 2; ++i)
+  {
+    const int texelIndex = i * 2;
+    yInterpolations[i] = Interpolate(xInterpolations[texelIndex],xInterpolations[texelIndex+1],
+      difference.y);
+  }
+  
+  return Interpolate(yInterpolations[0], yInterpolations[1], difference.z);
+}
+
+vec4 SampleGrid(GridStatus gridStatus, vec3 currentGridPos, bool mipMap)
+{
+  if(HARDWARE_SAMPLING)
+  {
+    vec3 texCoord = CalcTexCoord(currentGridPos, gridStatus.currentLevel);
+    if(mipMap)
+    {
+      //texCoord.x -= 1.0/19.0;
+      //texCoord.z -= 1.0f/19.0f;
+      //texCoord.y -= 2.0f / 19.0f;
+    }
+    vec3 texCoordAtlas = CalcTextureOffset(texCoord, gridStatus.imageOffset);
+    if(MIPMAP_TEXTURE_DEBUGGING)
+    {
+      if(gridStatus.currentLevel == 1)
+      {
+        return vec4(texCoordAtlas, 0.0);
+      }
+    }
+       
+    return textureLod(textureAtlas_, texCoordAtlas, 0);
+  }
+  else
+  {
+    vec3 texelPosition = CalcTexelPosition(currentGridPos, 
+      gridStatus.imageOffset, gridStatus.currentLevel);
+    return SampleGridInterpolate(texelPosition);    
+  }
+}
+
+float SampleTransmittance(vec3 gridPos, vec3 imageOffset, int level, bool mipMap)
+{
+  if(HARDWARE_SAMPLING)
+  {
+    vec3 texCoord = CalcTexCoord(gridPos, level);
+    if(mipMap)
+    {
+      //texCoord.x -= 1.0/19.0;
+      //texCoord.z -= 1.0f/19.0f;
+      //texCoord.y -= 2.0f / 19.0f;
+    }
+    vec3 texCoordAtlas = CalcTextureOffset(texCoord, imageOffset);
+    return textureLod(textureAtlas_, texCoordAtlas, 0).y;
+  }
+  else
+  {
+    vec3 texelPosition = CalcTexelPosition(gridPos, 
+      imageOffset, level);
+    return SampleGridInterpolate(texelPosition).y;    
+  }
+}
+
+int CalcMaxLevel(int prevMaxLevel, float stepLength)
+{
+  float minStepLength = levelData_.data[prevMaxLevel].gridCellSize * raymarchData_.lodScale_Reciprocal;
+  prevMaxLevel = stepLength > minStepLength ? max(0, prevMaxLevel - 1) : prevMaxLevel;
+  return prevMaxLevel;
+  //return stepLength > levelData_.data[prevMaxLevel].minStepSize ?
+	//	max(0, prevMaxLevel - 1) : prevMaxLevel;
+}
+
+bool UseMipMap(int currentLevel, int maxLevel)
+{
+  return currentLevel == maxLevel;
+}
+
+vec3 GetImageOffset(int nodeIndex, bool mipMapping)
+{
+  uint imageOffset = nodeInfos_.data[nodeIndex].imageOffset;
+  //Set image offset to mipmap if node has one
+  imageOffset = (mipMapping && (imageOffset & (1 << IMAGE_MIPMAP_BIT)) == 1) ?
+    nodeInfos_.data[nodeIndex].imageOffsetMipMap : imageOffset;
+  
+  //Unpack image offset
+  return vec3(
+    imageOffset >> IMAGE_BIT_OFFSETS[0],
+    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
+    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
+}
+
+float SampleGridShadowRay(vec3 gridSpacePos, float worldStepLength)
+{
+  float transmittance = 0.0f;
+  
+  int level = 0;
+  int parentNodeIndex = 0;
+  //Sample coarse level
+  bool useMipMap = UseMipMap(level, 1);
+  vec3 imageOffset = GetImageOffset(parentNodeIndex, useMipMap);
+  
+  transmittance += SampleTransmittance(gridSpacePos, imageOffset, level, useMipMap);
+  
+  vec3 gridOffset = vec3(0,0,0);
+  ivec3 gridPos = CalcGridPos(gridSpacePos, gridOffset, level);
+	//TODO: add correct resolution
+	int bitIndex = CalcBitIndex(gridPos, NODE_RESOLUTION);
+	ivec2 bitIndexOffset = CalcBitIndexOffset(bitIndex, parentNodeIndex, level);
+    
+  NodeInfo parentNodeInfo;
+	parentNodeInfo.childOffset = 0;
+  
+  if (BitActive(bitIndexOffset))
+  {
+    int nodeIndex = GetChildNodeIndex(bitIndexOffset.x, bitIndex, level, parentNodeInfo.childOffset)
+        + levelData_.data[level + 1].nodeOffset;
+		gridOffset = levelData_.data[level].childCellSize * vec3(gridPos);
+    
+    level++;
+    parentNodeInfo = nodeInfos_.data[nodeIndex];
+    
+    bool useMipMap = UseMipMap(level, 1);    
+    imageOffset = GetImageOffset(nodeIndex, useMipMap);
+    transmittance += SampleTransmittance(gridSpacePos, imageOffset, level, useMipMap);
+  }
+    
+  return transmittance;
+}
+
+GridStatus UpdateGridStatus(GridStatus gridStatus, vec3 gridSpacePos, float stepLength)
+{
+  int parentNodeIndex = 0;
+	NodeInfo parentNodeInfo;
+	parentNodeInfo.imageOffset = 0;
+	parentNodeInfo.childOffset = 0;
+	vec3 gridOffset = vec3(0, 0, 0);
+	gridStatus.currentLevel = 0;
+  int currentMaxLevel = CalcMaxLevel(gridStatus.maxLevel, stepLength);
+      
+  //Save the amount of sampled phase functions for non zero scattering values
+  int phaseGAccumCount = 0;
+  float phaseG = 0.0f;
+  
+  bool useMipMap = UseMipMap(gridStatus.currentLevel, currentMaxLevel);
+  vec3 imageOffset = GetImageOffset(parentNodeIndex, useMipMap);
+  
+  gridStatus.imageOffset = imageOffset.xyz;
+  gridStatus.accummTexValue = SampleGrid(gridStatus, gridSpacePos, useMipMap);
+  gridStatus.lowestLevelTexValue = gridStatus.accummTexValue;
+  phaseGAccumCount = gridStatus.accummTexValue.x == 0 ? phaseGAccumCount : phaseGAccumCount + 1;
+  phaseG = gridStatus.accummTexValue.x == 0 ? phaseG : phaseG + gridStatus.accummTexValue.z;
+  
+  bool levelIntersection = gridStatus.levelChangeCount < 0 && (gridStatus.maxLevel != currentMaxLevel);
+  gridStatus.levelChangeCount = levelIntersection ? 10 : gridStatus.levelChangeCount;
+  
+  
+  for (int i = 0; i < gridStatus.maxLevel; ++i)
+	{
+    ivec3 gridPos = CalcGridPos(gridSpacePos, gridOffset, i);
+		//TODO: add correct resolution
+		int bitIndex = CalcBitIndex(gridPos, NODE_RESOLUTION);
+		ivec2 bitIndexOffset = CalcBitIndexOffset(bitIndex, parentNodeIndex, i);
+    
+    if (BitActive(bitIndexOffset))
+		{
+      int nodeIndex = GetChildNodeIndex(bitIndexOffset.x, bitIndex, i, parentNodeInfo.childOffset)
+        + levelData_.data[i + 1].nodeOffset;
+			gridOffset = levelData_.data[i].childCellSize * vec3(gridPos);
+      gridStatus.currentLevel++;
+      parentNodeInfo = nodeInfos_.data[nodeIndex];
+      
+      useMipMap = UseMipMap(gridStatus.currentLevel, gridStatus.maxLevel);
+      if(MIPMAP_TEXTURE_DEBUGGING)
+      {
+        imageOffset = GetImageOffset(parentNodeIndex, useMipMap);
+      }
+      else
+      {
+        imageOffset = GetImageOffset(nodeIndex, useMipMap);
+      }
+      gridStatus.imageOffset = imageOffset.xyz;
+      vec4 texValue = vec4(0);
+	  if(ENABLE_FREQUENCY_SAMPLING)
+	  {
+		texValue = SampleGrid(gridStatus, gridSpacePos, useMipMap);
+	  }
+            
+      if(MIPMAP_TEXTURE_DEBUGGING)
+      {
+        if(gridStatus.currentLevel == 1)
+        {
+          useMipMap = true;
+        }
+          
+        if(useMipMap)
+        {
+          if(gridStatus.currentLevel == 1)
+          {
+            gridStatus.accummTexValue = texValue;
+            gridStatus.lowestLevelTexValue = texValue;
+            gridStatus.maxLevel = 2;
+          }
+          else if(gridStatus.currentLevel == 2)
+          {
+            gridStatus.currentLevel = 2;
+            //gridStatus.accummTexValue = vec4(1);
+            return gridStatus;
+          }
+        }
+        else
+        {
+          gridStatus.currentLevel = 1;
+          gridStatus.accummTexValue = texValue;
+          return gridStatus;
+        }
+      }
+      else
+      {        
+        //Blend between the two mip map levels 
+        if(i == gridStatus.maxLevel - 1 && gridStatus.levelChangeCount >= 0)
+        {
+          gridStatus.currentLevel--;
+          useMipMap = UseMipMap(gridStatus.currentLevel, currentMaxLevel);
+          gridStatus.imageOffset = GetImageOffset(parentNodeIndex, useMipMap);
+          vec4 mipMapValue = vec4(0);
+          if(ENABLE_FREQUENCY_SAMPLING)
+          {
+            mipMapValue = SampleGrid(gridStatus, gridSpacePos, useMipMap);
+          }
+          
+          //mip map weight becomes higher further away from the original intersection
+          float mipMapWeight = 1.0f / (gridStatus.levelChangeCount + 1) + 0.2f;
+          texValue.xy = texValue.xy * (1.0 - mipMapWeight) + mipMapValue.xy * mipMapWeight;
+          texValue.z = mipMapValue.x == 0 ? texValue.z : (texValue.z + mipMapValue.z) * 0.5f;
+          
+          gridStatus.currentLevel++;
+        }
+      }
+      
+      gridStatus.lowestLevelTexValue = texValue;
+      parentNodeIndex = nodeIndex;
+      
+      if(!MIPMAP_TEXTURE_DEBUGGING)
+      {
+        gridStatus.accummTexValue += texValue;
+      }
+      phaseGAccumCount = texValue.x == 0 ? phaseGAccumCount : phaseGAccumCount + 1;
+      phaseG = texValue.x == 0 ? phaseG : phaseG + texValue.z;
+		}		
+    else
+    {
+      break;
+    }
+	}
+  //average the phase function
+  gridStatus.accummTexValue.z = phaseGAccumCount > 0 ? phaseG / phaseGAccumCount : phaseG;
+  gridStatus.levelChangeCount--;
+  gridStatus.maxLevel = gridStatus.levelChangeCount < 0 ? currentMaxLevel : gridStatus.maxLevel;
+
+  if(gridStatus.accummTexValue.y != 0.0)
+  {
+    //gridStatus.accummTexValue.x = TEST_SCATTERING_COEFFICIENT;
+    //gridStatus.accummTexValue.y = TEST_EXTINCTION_COEFFICIENT;
+  }
+	
+  return gridStatus;
+}
+
+float Visibility(GridStatus gridStatus, vec3 gridPos, vec3 worldPos, int stepCount, float jitteringOffset)
+{
+  float visibility = 1.0f;
+    
+  int cascadeIndex = 0;
+  vec4 lightCoord = raymarchData_.shadowCascades[cascadeIndex] * vec4(worldPos, 1.0);
+  //No in scattering inside directional light
+  if(min(lightCoord.x, lightCoord.y) > 0.0 && max(lightCoord.x, lightCoord.y) < 1.0 &&
+    texture(shadowMap_, vec3(lightCoord.xy, cascadeIndex)).r + 0.005f < lightCoord.z)
+  {
+    visibility = 0.0f;
+  }
+  //perform shadow ray calculation
+  else
+  {
+	if(ENABLE_SHADOW_RAYS)
+	{
+		float rayDistance = ShadowRayIntersection(gridPos);
+		vec3 rayStart = gridPos + rayDistance * raymarchData_.lightDirection;
+		vec3 rayDirection = -raymarchData_.lightDirection;    
+    
+		int maxSteps = SHADOW_RAY_COUNT;
+		float worldStepSize = rayDistance / float(maxSteps);
+		float previousDepth = 0.0f;
+     
+		float jitteringDepth = worldStepSize * jitteringOffset;
+    
+		for(int currSteps = 0; currSteps < maxSteps; ++currSteps)
+		{
+		  float depth = min(rayDistance, worldStepSize * currSteps + jitteringDepth);
+		  vec3 currentGridPos = rayStart + rayDirection * depth;
+		  float stepSize = max(0.01f, depth - previousDepth);
+		  float transmittance = SampleGridShadowRay(currentGridPos, stepSize);
+		  visibility *= exp(-transmittance * stepSize);
+		  previousDepth = depth;
+		} 
+	}
+  }
+  return visibility;
+}
+
+float PhaseFunction(float LDotV, float g) {
+	float d = 1 + g * LDotV;
+	return (1.0 - g * g) / (PI_4 * d * d);
+}
+
+vec4 UpdateScatteringTransmittance(GridStatus gridStatus, vec4 texValue, vec4 accumScatteringTransmittance, 
+  vec3 gridPos, vec3 worldPos, vec3 direction, float worldStepSize, int stepCount, 
+  bool maxDepthReached, float jitteringOffset)
+{
+  float visibility = 1.0f;
+  //Dont calculate visibility when inscattering is zero
+  if(texValue.x != 0.0 || maxDepthReached)
+  {
+    if(ENABLE_SHADOW_TRANSMITTANCE)
+    {
+      visibility = Visibility(gridStatus, gridPos, worldPos, stepCount, jitteringOffset);
+    }  
+  }
+  float transmittance = accumScatteringTransmittance.a;
+  float scattering = texValue.x;
+  float extinction = max(0.0000000001f, texValue.y);
+  float phaseG = texValue.z;
+  
+  float LDotV = dot(raymarchData_.lightDirection, direction);
+  vec3 L = raymarchData_.irradiance * PhaseFunction(LDotV, phaseG);
+  vec3 S = L * visibility * scattering;
+  vec3 SInt = (S - S * exp(-extinction * worldStepSize)) / extinction;
+  accumScatteringTransmittance.xyz += transmittance * SInt;
+  
+  accumScatteringTransmittance.a *= exp(-extinction * worldStepSize);
+  if(maxDepthReached)
+  {
+    const float expectedTransmittance = exp(-0.01 * 32);
+    if(visibility != 1.0)
+    {
+      //accumScatteringTransmittance.a *= expectedTransmittance;
+      //return accumScatteringTransmittance;
+    }
+    if(expectedTransmittance != visibility)
+    {
+      //accumScatteringTransmittance = vec4(1,0,0,0);
+      //return accumScatteringTransmittance;
+    }
+    accumScatteringTransmittance.a *= visibility;
+  }
+  
+  return accumScatteringTransmittance;
+}
+
+vec4 UpdateScatteringTransmittance(vec4 accumScatteringTransmittance, vec4 texValue, vec3 rayDirection, float shadowTransmittance, float worldStepSize)
+{
+  const float transmittance = accumScatteringTransmittance.a;
+  const float scattering = texValue.x;
+  const float extinction = max(0.0000000001f, texValue.y);
+  const float phaseG = texValue.z;
+  
+  const float LDotV = dot(raymarchData_.lightDirection, rayDirection);
+  const vec3 L = raymarchData_.irradiance * PhaseFunction(LDotV, phaseG);
+  const vec3 S = L * shadowTransmittance * scattering;
+  const vec3 SInt = (S - S * exp(-extinction * worldStepSize)) / extinction;
+  accumScatteringTransmittance.xyz += transmittance * SInt;
+  accumScatteringTransmittance.a *= exp(-extinction * worldStepSize);
+  
+  return accumScatteringTransmittance;
+}
+
+vec4 Raymarching(vec3 gridSpaceOrigin, vec3 worldSpaceOrigin, vec3 direction, float maxDepth, float jitteringOffset)
+{
+  vec4 accumScatteringTransmittance = vec4(0,0,0,1);
+  
+  //Calculate intersection with global volume and skip raymarching if no intersection
+	const vec3 globalIntersection = 
+    RayBoundingBoxIntersection(gridSpaceOrigin, CalcDirectionReciprocal(direction), 
+    vec3(0), vec3(levelData_.data[0].gridCellSize));
+	if(globalIntersection.z == 0.0)
+	{
+		return accumScatteringTransmittance;
+	}
+	
+  int stepCount = 0;
+  float currentDepth = globalIntersection.x;
+  
+  maxDepth = min(maxDepth, raymarchData_.farPlane);
+  const float exponentialScale = log(raymarchData_.farPlane - raymarchData_.nearPlane);
+  
+	const vec3 gridOrigin = gridSpaceOrigin + direction * globalIntersection.x;
+   
+  GridStatus gridStatus;
+  gridStatus.currentLevel = 0;
+  gridStatus.levelChangeCount = 0;
+  gridStatus.maxLevel = raymarchData_.maxLevel;
+    
+  float prevDepth = 0.0f;
+  
+  int startLevel = -1;
+  int changeCount = 0;
+  int maxFrequency = 0;
+  
+  int shadowRayCount = 0;
+  
+  while(stepCount < raymarchData_.maxSteps && currentDepth < raymarchData_.farPlane)
+  {
+    float nextDepth = CalcExponentialDepth(stepCount, raymarchData_.maxSteps, exponentialScale);
+    float stepLength = nextDepth - prevDepth;
+    
+    prevDepth = nextDepth;
+    stepCount++;   
+    
+    float jitteredDepth = min(nextDepth + jitteringOffset * stepLength, maxDepth);
+    
+    vec4 texValue = raymarchData_.globalScattering;
+     
+    //Stop if we reached point outside of volume
+    vec3 currentGridPos = gridOrigin + direction * jitteredDepth;
+    if(jitteredDepth < globalIntersection.y)
+    {
+      gridStatus = UpdateGridStatus(gridStatus, currentGridPos, stepLength);
+           
+     if(MIPMAP_TEXTURE_DEBUGGING)
+      {
+        if(gridStatus.currentLevel == 2)
+        {
+          accumScatteringTransmittance = gridStatus.accummTexValue;
+          return accumScatteringTransmittance;
+        }
+        if(gridStatus.currentLevel == 1 && currentGridPos.y <= 272)
+        {
+          accumScatteringTransmittance = gridStatus.accummTexValue;
+        }
+      }
+      texValue = gridStatus.accummTexValue;
+      
+      //increase shadow ray count if sample with scattering
+      shadowRayCount += texValue.x > 0.0f ? 1 : 0;
+    }    
+    
+    if(LEVEL_VISUALIZATION)
+    {
+      const int level = gridStatus.currentLevel;
+      if(startLevel != level)
+      {
+        startLevel = level;
+        accumScatteringTransmittance.xyz += LEVEL_COLORS[level];
+        accumScatteringTransmittance.a = LEVEL_TRANSMITTANCE;
+        changeCount++;
+      }
+    }
+    else if(FREQUENCY_VISUALIZATION)
+    {
+      const vec4 lowestTexValue = gridStatus.lowestLevelTexValue;
+      if(lowestTexValue.y > 0.0 || lowestTexValue.x > 0.0)
+      {
+        maxFrequency = max(maxFrequency, gridStatus.currentLevel);
+      }
+      accumScatteringTransmittance.a *= exp(-texValue.y * stepLength);
+    }
+    else
+    {
+      vec3 currentWorldPos = worldSpaceOrigin + direction * jitteredDepth;
+      accumScatteringTransmittance = UpdateScatteringTransmittance(
+        gridStatus, texValue, accumScatteringTransmittance, 
+        currentGridPos, currentWorldPos, direction, stepLength, stepCount,
+        jitteredDepth == maxDepth, jitteringOffset);
+      if(accumScatteringTransmittance.w < 0.01)
+      {
+        accumScatteringTransmittance.w = 0.0f;
+        return accumScatteringTransmittance;
+      }
+    }
+    
+    if(jitteredDepth >= maxDepth)
+    {
+      if(SHADOWRAY_VISUALIZATION)
+      {
+        const float shadowRayComplexity = float(shadowRayCount) / float(raymarchData_.maxSteps);
+        return vec4(shadowRayComplexity,0,0,0.5f);
+      }
+      else if(LEVEL_VISUALIZATION)
+      {
+        const float transmittance = LEVEL_TRANSMITTANCE / changeCount;
+        if(accumScatteringTransmittance.x != 0.0f)
+        {
+          accumScatteringTransmittance = vec4(1.0f, 0.0f, 0.0f, transmittance);
+        }
+        else if(accumScatteringTransmittance.y != 0.0f)
+        {
+          accumScatteringTransmittance = vec4(0.6f, 0.0f, 0.0f, transmittance);
+        }
+        else if(accumScatteringTransmittance.z != 0.0f)
+        {
+          accumScatteringTransmittance = vec4(0.3f, 0.0f, 0.0f, transmittance);
+        }
+        return accumScatteringTransmittance;
+      }
+      else if(FREQUENCY_VISUALIZATION)
+      {
+        accumScatteringTransmittance.x = (maxFrequency + 1) / float(MAX_LEVELS);
+        return accumScatteringTransmittance;
+      }
+      else
+      {
+        return accumScatteringTransmittance;
+      }
+    }
+  }
+  
+  if(SHADOWRAY_VISUALIZATION)
+  {
+    const float shadowRayComplexity = float(shadowRayCount) / float(raymarchData_.maxSteps);
+    return vec4(shadowRayComplexity,0,0,0.5f);
+  }
+  else if(LEVEL_VISUALIZATION)
+  {
+    accumScatteringTransmittance.xyz /= float(changeCount);
+    return accumScatteringTransmittance;
+  }
+  else if(FREQUENCY_VISUALIZATION)
+  {
+    accumScatteringTransmittance.x = (maxFrequency + 1) / float(MAX_LEVELS);
+    return accumScatteringTransmittance;
+  }
+  else
+  {
+    return accumScatteringTransmittance;
+  }
+}
+
+//Use intersection with test bounding box to calculate transmittance over this depth
+vec4 TransmittanceTest(vec3 rayOrigin, vec3 direction)
+{
+  vec3 cubeIntersection = 
+    RayBoundingBoxIntersection(rayOrigin, CalcDirectionReciprocal(direction), 
+      TEST_BOUNDING_BOX_MIN, TEST_BOUNDING_BOX_MAX);
+  
+  float transmittance = 1.0;
+  
+  if(cubeIntersection.z != 0)
+  {
+    const float depth = cubeIntersection.y - cubeIntersection.x;
+    transmittance = exp(-TEST_EXTINCTION_COEFFICIENT * depth);
+  }
+  return vec4(0, 0, 0, transmittance);
+}
+
+float ShadowTransmittanceTest(vec3 rayPosition)
+{
+  return TransmittanceTest(rayPosition, raymarchData_.lightDirection).a;
+}
+
+//Use uniform sampling in the test bounding box
+vec4 ScatteringTransmittanceTest(vec3 rayOrigin, vec3 direction)
+{
+  vec4 scatteringTransmittance = vec4(0,0,0,1);
+  const vec3 rayIntersection = 
+    RayBoundingBoxIntersection(rayOrigin, CalcDirectionReciprocal(direction), 
+      TEST_BOUNDING_BOX_MIN, TEST_BOUNDING_BOX_MAX);
+
+  if(rayIntersection.z == 0)
+  {
+    return scatteringTransmittance;
+  }
+      
+  const float stepSize = (rayIntersection.y - rayIntersection.x) / float(TEST_UNIFORM_STEP_COUNT); 
+  
+  for(int i = 0; i < TEST_UNIFORM_STEP_COUNT; ++i)
+  {
+    const vec3 currPosition = rayOrigin + direction * stepSize * i;
+    const float shadow = ShadowTransmittanceTest(currPosition);
+      
+    const float LDotV = dot(raymarchData_.lightDirection, direction);
+    vec3 L = raymarchData_.irradiance * PhaseFunction(LDotV, 0.0f);
+    const vec3 S = L * shadow * TEST_SCATTERING_COEFFICIENT;
+    const float sampleExtinction = max(0.0000000001, TEST_EXTINCTION_COEFFICIENT);
+    const vec3 Sint = (S - S * exp(-sampleExtinction * stepSize)) / sampleExtinction;
+    scatteringTransmittance.xyz += scatteringTransmittance.a * Sint;
+        
+    scatteringTransmittance.a *= exp(-TEST_EXTINCTION_COEFFICIENT * stepSize);
+  }
+  
+  return scatteringTransmittance;
+}
+
+float GeometryShadowTest(vec3 worldPosition)
+{
+  return ShadowTransmittanceTest(worldPosition);
+}
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+void main()
+{
+	ivec2 imagePos = ivec2(gl_GlobalInvocationID.xy);
+
+	//skip if image pos is outside of screen
+	if(imagePos.x > raymarchData_.screenSize.x || imagePos.y > raymarchData_.screenSize.y)
+	{
+		return;
+	}
+  
+  imagePos *= DEBUG_SCREEN_DIVISION;
+  
+  //TODO check stencil if shadow ray is needed at this position
+  const float depth = imageLoad(depthImage_, imagePos).r;
+	const vec4 startViewPort = ImageToViewport(imagePos);
+	const vec4 endViewPort = startViewPort + vec4(0.0f, 0.0f, depth, 0.0f);
+  
+  const vec3 worldNear = ViewportToWorld(startViewPort);
+  const vec3 worldEnd = ViewportToWorld(endViewPort);
+  
+  const Ray worldRay = CreateRay( worldNear, worldEnd);
+	//move ray into grid space [0, gridSize]
+	const vec3 gridOrigin = worldRay.origin - raymarchData_.gridMinPosition;
+  const float jitteringOffset = Jittering(imagePos);
+  
+  const vec4 raymarchingResult = Raymarching(gridOrigin, worldRay.origin, worldRay.direction, worldRay.maxLength, jitteringOffset);
+  //const vec4 raymarchingResult = Raymarching_Update(gridOrigin,
+  //  worldRay.direction, worldRay.maxLength, jitteringOffset);
+  vec4 result = raymarchingResult;
+  
+  if(TEST_TRANSMITTANCE)
+  {
+    result = TransmittanceTest(worldRay.origin, worldRay.direction);
+  }
+  else if(TEST_SCATTERING)
+  {
+    result = ScatteringTransmittanceTest(worldRay.origin, worldRay.direction);
+  }
+  else if(TEXTURE_OUTPUT)
+  {
+    vec3 imageIndex = vec3(imagePos / 18.0 / TEXTURE_SIZE, TEXTURE_POSITION / TEXTURE_SIZE);
+    result = texture(textureAtlas_, imageIndex);
+  }
+  if(TEST_TRANSMITTANCE || TEST_SCATTERING)
+  {
+    const float geometryShadow = GeometryShadowTest(worldEnd);
+    result.a *= geometryShadow;
+  }
+  
+	const vec4 oldValue = imageLoad(raymarchingResults_, imagePos);
+	const float weight = 0.2f;
+	const vec4 temporalResult = weight * result + (1-weight)*oldValue;
+  imageStore(raymarchingResults_, imagePos, temporalResult);
+  //imageStore(raymarchingResults_, imagePos, result);
+}

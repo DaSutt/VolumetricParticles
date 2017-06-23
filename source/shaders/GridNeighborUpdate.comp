@@ -1,0 +1,144 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#version 450
+
+const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
+const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
+
+const int NODE_RESOLUTION = 16;
+const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+
+struct NeighborData
+{
+  uint first;
+  uint second;
+  int direction;
+  int PADDING;
+};
+
+layout(set = 0, binding = 0, rgba16f) uniform image3D scatteringExtinctionGrid;
+
+layout(set = 0, binding = 1) uniform atlasProperties
+{
+  int resolution;
+  int resolutionOffset;
+  int sideLength;
+} atlasProperties_;
+
+layout(set = 0, binding = 2) buffer neighborBuffer
+{
+  NeighborData data[];
+} neighbors_;
+
+layout(push_constant) uniform perLevelConstant
+{
+  int neighborOffset;
+} perLevel_;
+
+const uint OFFSET_FIRST_INNER   = 0;
+const uint OFFSET_SECOND_INNER  = 1;
+const uint OFFSET_FIRST_EDGE    = 2;
+const uint OFFSET_SECOND_EDGE   = 3;
+const uint OFFSET_MAX           = 4;
+
+struct Offsets
+{
+  ivec3 data[OFFSET_MAX];
+};
+
+ivec3 UnpackImageOffset(uint imageOffset)
+{
+  return ivec3(
+    imageOffset >> IMAGE_BIT_OFFSETS[0],
+    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
+    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
+}
+
+Offsets CalcOffsets(NeighborData data)
+{
+  const ivec3 firstImageOffset = UnpackImageOffset(data.first);  
+  const ivec3 secondImageOffset = UnpackImageOffset(data.second);
+  
+  Offsets offsets;
+  for(int i = 0; i < OFFSET_MAX; ++i)
+  {
+    offsets.data[i] += (i % 2 == 0) ? firstImageOffset : secondImageOffset;
+  }
+  
+  const int maskIndex = data.direction / 2;
+  bool evenDir = data.direction % 2 == 0;
+  
+  const int firstEdgePos = !evenDir ? atlasProperties_.resolutionOffset - 2 : 1;
+  offsets.data[OFFSET_FIRST_INNER][maskIndex] += firstEdgePos + (evenDir ? 1 : -1);
+  offsets.data[OFFSET_FIRST_EDGE][maskIndex] += firstEdgePos;
+  
+  const int secondEdgePos = evenDir ? atlasProperties_.resolutionOffset - 2 : 1;
+  offsets.data[OFFSET_SECOND_INNER][maskIndex] += secondEdgePos + + (!evenDir ? 1 : -1);
+  offsets.data[OFFSET_SECOND_EDGE][maskIndex] += secondEdgePos;
+  return offsets;
+}
+
+layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
+void main()
+{
+  const NeighborData currData = neighbors_.data[int(gl_WorkGroupID) + perLevel_.neighborOffset];
+  Offsets offsets = CalcOffsets(currData);    
+  
+  const int maskIndex = currData.direction / 2;
+  const ivec2 changingIndices = ivec2((maskIndex + 1) % 3, (maskIndex + 2) %3);  
+    
+  const int x = int(gl_LocalInvocationID.x) + 1;
+  const int y = int(gl_LocalInvocationID.y) + 1;
+  
+  Offsets currOffsets = offsets;
+  vec4 currValues[OFFSET_MAX];
+  bool evenDir = currData.direction % 2 == 0;
+  
+  const int firstOffset = evenDir ? -1 : 1;
+  const int secondOffset = evenDir ? 1 : -1;
+  for(int i = 0; i < OFFSET_MAX; ++i)
+  {
+    currOffsets.data[i][changingIndices.x] += x;
+    currOffsets.data[i][changingIndices.y] += y;
+    currValues[i] = imageLoad(scatteringExtinctionGrid, currOffsets.data[i]);
+    currOffsets.data[i][maskIndex] += i % 2 == 0 ? firstOffset : secondOffset;
+  }
+  
+  groupMemoryBarrier();
+  
+  vec4 color = vec4(1,0,0,0);
+  //Copy the inner values to the edge cells
+  imageStore(scatteringExtinctionGrid, 
+    currOffsets.data[OFFSET_FIRST_EDGE], currValues[OFFSET_SECOND_EDGE]);
+  imageStore(scatteringExtinctionGrid,
+    currOffsets.data[OFFSET_SECOND_EDGE], currValues[OFFSET_FIRST_EDGE]);
+    
+  const vec4 averagedValue = (currValues[OFFSET_FIRST_EDGE] + currValues[OFFSET_SECOND_EDGE])
+    * 0.5f;
+  imageStore(scatteringExtinctionGrid,
+    currOffsets.data[OFFSET_FIRST_INNER], averagedValue);
+  imageStore(scatteringExtinctionGrid,
+    currOffsets.data[OFFSET_SECOND_INNER], averagedValue);
+}

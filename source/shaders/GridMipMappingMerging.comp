@@ -1,0 +1,90 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#version 450
+
+const int NODE_RESOLUTION = 16;
+const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+const int IMAGE_RESOLUTION_OFFSET = IMAGE_RESOLUTION + 2;
+
+const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
+const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
+
+struct NodeImageOffsets
+{
+  uint imageOffset;
+  uint mipMapImageOffset;
+  uint mipMapSourceOffset;
+};
+
+
+layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
+layout(set = 0, binding = 1) uniform sampler3D mipMapAtlas_;
+layout(set = 0, binding = 2) uniform ConstantBuffer
+{
+  float UNUSED;
+  float atlasTexelToTexCoord;
+  float texCoordOffset;
+} cb_;
+layout(set = 0, binding = 3) buffer nodeBuffer
+{
+  NodeImageOffsets data[];
+} nodes_;
+layout(push_constant) uniform perLevelConstant
+{
+  int offset;
+} perLevel_;
+
+ivec3 UnpackImageOffset(uint imageOffset)
+{
+  return ivec3(
+    imageOffset >> IMAGE_BIT_OFFSETS[0],
+    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
+    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
+}
+
+layout(local_size_x = IMAGE_RESOLUTION_OFFSET, local_size_y = IMAGE_RESOLUTION_OFFSET, local_size_z = 1) in;
+void main()
+{
+  const int index = int(gl_WorkGroupID.x);
+  const NodeImageOffsets nodeData = nodes_.data[index + perLevel_.offset];
+  
+  const ivec3 imageOffset = UnpackImageOffset(nodeData.imageOffset);
+  const ivec3 mipMapImageOffset = UnpackImageOffset(nodeData.mipMapImageOffset);
+  const ivec3 mipMapSourceImageOffset = UnpackImageOffset(nodeData.mipMapSourceOffset);
+  
+  for(int y = 1; y < IMAGE_RESOLUTION_OFFSET - 1; ++y)
+  {
+    const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
+    const ivec3 mipMapTexel = mipMapImageOffset + offset;
+    const ivec3 mipMapSourceTexel = mipMapSourceImageOffset + offset;
+    
+    const vec4 imageValue = imageLoad(imageAtlas_, imageOffset + offset);
+    vec4 mipMapValue = texture(mipMapAtlas_, (mipMapSourceTexel) * 
+      cb_.atlasTexelToTexCoord); 
+    //mipMapValue = vec4(0.0f, 5.0f, 0.0f, 0.0f);
+              
+    imageStore(imageAtlas_, mipMapTexel, mipMapValue);
+  }
+}

@@ -1,0 +1,130 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#version 450
+
+const int THREAD_COUNT = 4;
+const int TOTAL_THREADS = THREAD_COUNT * THREAD_COUNT * THREAD_COUNT;
+const int SAMPLE_COUNT = 8;
+
+const int NODE_RESOLUTION = 16;
+const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+const int IMAGE_RESOLUTION_OFFSET = IMAGE_RESOLUTION + 2;
+
+const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
+const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
+
+struct MipMapInfo
+{
+  uint childImageOffset;
+  uint parentTexel;
+};
+
+layout(set = 0, binding = 0) uniform sampler3D textureAtlas_;
+layout(set = 0, binding = 1, rgba16f) uniform image3D mipMapAtlas_;
+layout(set = 0, binding = 2) uniform cbData
+{
+  float textureAtlasSizeReciprocal;
+  float UNUSED1;
+  float UNUSED2;
+} cb_;
+layout(set = 0, binding = 3) buffer mipMapBuffer
+{
+  MipMapInfo data[];
+} mipMapInfos_;
+layout(push_constant) uniform PerLevelPushConstant
+{
+  int startOffset;
+} perLevel_;
+
+shared vec4 sharedMemory[TOTAL_THREADS];
+
+ivec3 UnpackImageOffset(uint imageOffset)
+{
+  return ivec3(
+    imageOffset >> IMAGE_BIT_OFFSETS[0],
+    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
+    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
+}
+
+int CalcIndex(ivec3 id, int resolution)
+{
+  return (id.z * resolution + id.y) * resolution + id.x;
+}
+
+ivec3 CalcImageOffset(int sampleIndex)
+{
+  ivec3 imageOffset;
+  imageOffset.x = sampleIndex % 2;
+  imageOffset.y = (sampleIndex / 2) % 2;
+  imageOffset.z = sampleIndex / 4;
+  return imageOffset * 2;
+}
+
+layout(local_size_x = THREAD_COUNT, local_size_y = THREAD_COUNT, local_size_z = THREAD_COUNT) in;
+void main()
+{
+  const int nodeIndex = int(gl_WorkGroupID.x) + perLevel_.startOffset;
+  const MipMapInfo mipMapInfo = mipMapInfos_.data[nodeIndex];
+  const ivec3 childImageOffset = UnpackImageOffset(mipMapInfo.childImageOffset);
+  
+  const ivec3 threadID = ivec3(gl_LocalInvocationID);
+  
+  //offset by 1 to be inside of the node and not at the border
+  const ivec3 textureIndex = threadID * THREAD_COUNT + childImageOffset;
+  const int threadIndex = CalcIndex(threadID, THREAD_COUNT);
+  vec4 sampledAverage = vec4(0);
+  
+  //Sample 2 * 2 * 2 texels and average them
+  //TODO unroll
+  for(int i = 0; i < SAMPLE_COUNT; ++i)
+  {
+    vec3 samplePos = (vec3(textureIndex + CalcImageOffset(i)) + vec3(0.5)) * cb_.textureAtlasSizeReciprocal;
+    sampledAverage += texture(textureAtlas_, samplePos);
+  }
+  
+  sampledAverage *= 0.125;
+  sharedMemory[threadIndex] = sampledAverage;
+
+  memoryBarrierShared();
+  
+  //TODO Unroll based on total threads
+  //parallel reducing of values
+  for(int size = TOTAL_THREADS / 2; size > 0; size >>= 1)
+  {
+    if(threadIndex < size)
+    {
+      sharedMemory[threadIndex] += sharedMemory[threadIndex + size];
+    }
+    
+    memoryBarrierShared();
+  }
+  
+  if(threadIndex == 0)
+  {
+    vec4 finalValue = sharedMemory[0] / float(TOTAL_THREADS);
+    const ivec3 parentTexel = UnpackImageOffset(mipMapInfo.parentTexel);
+    imageStore(mipMapAtlas_, parentTexel, finalValue);
+  }
+}
