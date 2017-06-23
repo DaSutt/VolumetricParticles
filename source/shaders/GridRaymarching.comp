@@ -1001,7 +1001,7 @@ void main()
   }
   
 	const vec4 oldValue = imageLoad(raymarchingResults_, imagePos);
-	const float weight = 0.2f;
+	const float weight = 1.0f;
 	const vec4 temporalResult = weight * result + (1-weight)*oldValue;
   imageStore(raymarchingResults_, imagePos, temporalResult);
   //imageStore(raymarchingResults_, imagePos, result);
