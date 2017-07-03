@@ -12,8 +12,4 @@ shadow rays is supported. The various effects and the rendering can be changed t
 interface.
 
 # Build
-In the particle-project folder:  
-git clone --recursive https://github.com/DaSutt/VolumetricParticles.git
-mkdir bin  
-cd bin  
-cmake .. -G "Visual Studio 15 2017 Win64"
+Run Build.bat
