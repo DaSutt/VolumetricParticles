@@ -27,7 +27,6 @@ SOFTWARE.
 #include <iostream>
 #include <assert.h>
 #include <windowsx.h>
-#include "fileIO\OutputManager.h"
 #include "fileIO\FileDialog.h"
 
 #include "renderer\passes\GuiPass.h"

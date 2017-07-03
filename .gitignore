@@ -1,5 +1,7 @@
 bin
 *.spv
 x64/
-Particle-Project.dir
-ThirdParty
+Particle-Project.dir/
+!ThirdParty/
+ThirdParty/*
+!ThirdParty/rply-1.1.4
