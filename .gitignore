@@ -1,3 +1,5 @@
 bin
 *.spv
 x64/
+Particle-Project.dir
+ThirdParty

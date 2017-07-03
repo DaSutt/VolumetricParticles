@@ -40,12 +40,6 @@ else()
                         $ENV{VULKAN_SDK}/x86_64/lib)
 endif()
 
-#build shaderc
-set(SHADERC_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/shaderc")
-set(SHADERC_ENABLE_SHARED_CRT ON CACHE BOOL "")
-set(SHADERC_SKIP_TESTS ON CACHE BOOL "")
-add_subdirectory(${SHADERC_SOURCE_DIR})
-
 file(GLOB SRC_INPUT "source/input/*.cpp" "source/input/*.h")
 file(GLOB SRC_FILE_IO "source/fileIO/*.cpp" "source/fileIO/*.h")
 file(GLOB SRC_SCENE "source/scene/*.cpp" "source/scene/*.h")
@@ -116,5 +110,4 @@ source_group("scene\\grid" FILES ${SRC_SCENE_GRID})
 source_group("utiliity" FILES ${SRC_UTILITY})
 
 target_link_libraries(Particle-Project vulkan-1.lib
-  shaderc
-  Shlwapi)
+  shaderc)
