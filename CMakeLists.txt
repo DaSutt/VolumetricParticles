@@ -109,5 +109,8 @@ source_group("scene\\components" FILES ${SRC_SCENE_COMPONENTS})
 source_group("scene\\grid" FILES ${SRC_SCENE_GRID})
 source_group("utiliity" FILES ${SRC_UTILITY})
 
+SET(SHADERC_LIB optimized ${CMAKE_CURRENT_SOURCE_DIR}\\ThirdParty\\shaderc\\bin\\libshaderc\\Release\\shaderc_combined.lib 
+debug ${CMAKE_CURRENT_SOURCE_DIR}\\ThirdParty\\shaderc\\bin\\libshaderc\\Debug\\shaderc_combined.lib)
 target_link_libraries(Particle-Project vulkan-1.lib
-  shaderc)
+  Shlwapi
+  ${SHADERC_LIB})
