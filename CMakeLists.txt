@@ -13,7 +13,9 @@ ENDIF (WIN32)
 #third party
 include_directories(ThirdParty/glm
 					ThirdParty
-          ThirdParty/shaderc)
+          ThirdParty/shaderc
+          ThirdParty/shaderc/glslc/src
+          ThirdParty/shaderc/libshaderc_util/include)
 file(GLOB_RECURSE SRC_THIRD_PARTY
 	"ThirdParty/imgui/imgui.cpp"
 	"ThirdParty/imgui/imgui_draw.cpp"

@@ -27,7 +27,7 @@ SOFTWARE.
 #include <vector>
 #include <map>
 #include <vulkan\vulkan.h>
-#include <libshaderc\include\shaderc\shaderc.h>
+#include <libshaderc\include\shaderc\shaderc.hpp>
 
 #include "..\passes\Passes.h"
 
@@ -36,31 +36,20 @@ namespace Renderer
   class ShaderManager
   {
   public:
-    bool ReLoad(VkDevice device);
-    void SwitchPrecision(VkDevice device);
-    void Release(VkDevice device);
+		enum Type
+		{
+			TYPE_VERT,
+			TYPE_FRAG,
+			TYPE_COMP,
+			TYPE_GEOM
+		};
 
+		ShaderManager();
+    //Reload all shaders, the new shaders are only used if all shaders were compiled correctly
+    bool ReLoad(VkDevice device);
+		void Release(VkDevice device);
     const std::vector<VkPipelineShaderStageCreateInfo>& GetShaderStageInfo(Renderer::SubPassType pass) const;
   private:
-    enum Type
-    {
-      TYPE_VERT,
-      TYPE_FRAG,
-      TYPE_COMP,
-      TYPE_GEOM
-    };
-
-    enum IncludeFileBits
-    {
-      INCLUDE_PRECISION = 1 << 0,
-      INCLUDE_MAX
-    };
-
-    enum DefineBits
-    {
-      DEFINE_FP16 = 1 << 0,
-      DEFINE_MAX
-    };
 
     struct ShaderInfo
     {
@@ -78,21 +67,15 @@ namespace Renderer
       std::string content;
       IncludeData(const std::string fileName);
     };
-
-    static shaderc_compilation_result_t RecompileShader(shaderc_compiler_t& compiler, const ShaderInfo& info);
-    static std::string ReadFile(const std::string& fileName);
-    static VkPipelineShaderStageCreateInfo GetCreateInfo(VkShaderModule module, Type type, int index);
-    static std::string AddInclude(const std::string& fileContent, int includeFiles);
-
-    static std::vector<ShaderInfo> shaderInfo_;
-    static std::map<IncludeFileBits, IncludeData> includeFiles_;
-    static std::map<DefineBits, std::string> defines_;
-    static std::string shaderSourceFolder_;
-    static bool mediumPrecision_;
-
-    bool ReloadIncludes();
-
+		
+    shaderc::SpvCompilationResult CompileShader(int shaderIndex);
+		
+		shaderc::Compiler compiler_;
     std::vector<VkShaderModule> shaders_;
     std::vector<std::vector<VkPipelineShaderStageCreateInfo>> createInfo_;
+
+		//TODO replace this with general option for shader path
+		std::string shaderSourceFolder_ = "..\\source\\shaders\\";
+    std::vector<ShaderInfo> shaderInfos_;
   };
 }
