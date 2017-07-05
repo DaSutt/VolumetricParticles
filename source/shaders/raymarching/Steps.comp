@@ -22,5 +22,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+float CalcExponentialDepth(int currStep, int maxSteps, float expScale)
+{
+  return exp(currStep / float(maxSteps) * expScale) - 1.0f; 
+}
+
+//Next depth, step length
+vec2 NextDepth(int stepCount, int maxSteps, float scale, float prevDepth)
+{
+  vec2 result;
+  result.x = CalcExponentialDepth(stepCount, maxSteps, scale);
+  result.y = result.x - prevDepth;
+  
+  //TODO apply jittering
+  return result;
+}

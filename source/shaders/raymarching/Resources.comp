@@ -1,0 +1,108 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+struct LevelData {
+  float gridCellSize;
+	int gridResolution;
+	int nodeArrayOffset;
+	int nodeSize;
+
+	int childArrayOffset;
+	float childCellSize;
+	int nodeOffset;
+	int childOffset;
+  
+  float shadowRayStepSize;
+  float texelScale;
+	vec2 PADDING;
+};
+
+struct NodeInfo {
+	uint imageOffset;
+  uint imageOffsetMipMap;
+  int childOffset;
+};
+
+//vec3 in scattering, float transmittancse
+layout(set = 0, binding = 0, rgba16f) uniform image2D raymarchingResults_;
+layout(set = 0, binding = 1, r16f) uniform image2D depthImage_;
+
+//scattering, extinction, phaseG
+layout(set = 0, binding = 2) uniform sampler3D textureAtlas_;
+layout(set = 0, binding = 3) uniform sampler2DArray shadowMap_;
+
+layout(set = 0, binding = 4) uniform sampler2DArray noiseTextureArray_;
+
+layout(set = 0, binding = 5) buffer nodeInfoBuffer {
+	NodeInfo data[];
+} nodeInfos_;
+layout(set = 0, binding = 6) buffer activeBitBuffer {
+	uint data[];
+} activeBits_;
+
+layout(set = 0, binding = 7) buffer nodeCountBuffer {
+  int data[];
+} bitCounts_;
+
+layout(set = 0, binding = 8) buffer childIndexBuffer {
+	int indices[];
+} childIndices_;
+
+layout(set = 0, binding = 9) uniform perFrameData {
+  mat4 viewPortToWorld;
+  mat4 shadowCascades[4]; //TODO select correct cascade
+  
+  vec3 shadowRayPlaneNormal;
+	float shadowRayPlaneDistance;
+  
+  vec3 irradiance;
+	float lodScale_Reciprocal;
+		
+	vec4 globalScattering;
+	vec3 gridMinPosition;
+	float jitteringScale;
+		
+	vec3 randomness;
+	float textureOffset;
+		
+	vec3 lightDirection;
+	float textureFraction;
+		
+	vec2 screenSize;
+  float nearPlane;
+	float farPlane;
+		
+	float exponentialScale;
+	float atlasTexelToNodeTexCoord;
+	float maxDepth;
+	int maxSteps;
+		
+	int atlasSideLength;
+	int maxLevel;
+	ivec2 padding;
+} raymarchData_;
+
+layout(set = 0, binding = 10) buffer perLevelData {
+	LevelData[] data;
+} levelData_;

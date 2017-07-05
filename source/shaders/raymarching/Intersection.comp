@@ -22,5 +22,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+const float NO_CHANGE = 1.0e10f;
+
+vec3 CalcDirectionReciprocal(vec3 direction) {
+	vec3 dirReciprocal;
+	dirReciprocal.x = direction.x == 0 ? NO_CHANGE : 1.0 / direction.x;
+	dirReciprocal.y = direction.y == 0 ? NO_CHANGE : 1.0 / direction.y;
+	dirReciprocal.z = direction.z == 0 ? NO_CHANGE : 1.0 / direction.z;
+	return dirReciprocal;
+}
+
+//return value x = entry, y - exit, z - 0.0 if no intersection, 1.0 if intersection
+vec3 RayBoundingBoxIntersection(vec3 origin, vec3 recDir, vec3 boxMin, vec3 boxMax) {
+	vec3 tmin = (boxMin - origin) * recDir;
+	vec3 tmax = (boxMax - origin) * recDir;
+	vec3 tNear = min(tmin, tmax);
+	vec3 tFar = max(tmin, tmax);
+
+	float entry = max(max(tNear.x, 0.0f), max(tNear.y, tNear.z));
+	float exit = min(min(tFar.x, tFar.y), tFar.z);
+	return vec3(entry, exit, (exit > 0.0 && entry < exit) ? 1.0 : 0.0);
+}

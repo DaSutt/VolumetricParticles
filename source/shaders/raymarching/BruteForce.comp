@@ -1,0 +1,65 @@
+/*
+MIT License
+
+Copyright(c) 2017 Daniel Suttor
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files(the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions :
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
+#include "Intersection.comp"
+#include "Resources.comp"
+#include "Steps.comp"
+
+vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction, 
+  const float maxDepth)
+{
+  vec4 accumScatteringTransmittance = vec4(0,0,0,1);
+  
+  //Calculate intersection with global volume and skip raymarching if no intersection
+	const vec3 globalIntersection = 
+    RayBoundingBoxIntersection(gridSpaceOrigin, CalcDirectionReciprocal(direction), 
+    vec3(0), vec3(levelData_.data[0].gridCellSize));
+	if(globalIntersection.z == 0.0)
+	{
+		return accumScatteringTransmittance;
+	}
+  
+  int stepCount = 0;
+  
+  //Next depth, step length
+  vec2 stepData = vec2(globalIntersection.x, 0.0f);
+  while(stepCount < raymarchData_.maxSteps && stepData.x < globalIntersection.y)
+  {
+    //Advance to next step
+    stepData = NextDepth(stepCount, raymarchData_.maxSteps, 
+      raymarchData_.exponentialScale, stepData.x);
+    stepCount++;
+    
+    stepData.x = min(stepData.x, maxDepth);
+        
+    //Check for early termination through geometry
+    if(stepData.x >= maxDepth)
+    {
+      accumScatteringTransmittance.x = stepCount / float(raymarchData_.maxSteps);
+      return accumScatteringTransmittance;
+    }
+  }
+      
+  return accumScatteringTransmittance;
+}

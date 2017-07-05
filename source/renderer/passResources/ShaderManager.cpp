@@ -196,6 +196,7 @@ namespace Renderer
 		std::vector<std::vector<VkPipelineShaderStageCreateInfo>> createInfo(Renderer::SUBPASS_MAX);
 
 		fileFinder_.search_path().push_back(shaderSourceFolder_ + "include");
+		fileFinder_.search_path().push_back(shaderSourceFolder_ + "raymarching");
 		//set to true if one of the shaders fails to compile
 		bool failed = false;
 		for (size_t i = 0; i < shaderInfos_.size(); ++i)
