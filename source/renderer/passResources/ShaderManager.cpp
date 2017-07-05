@@ -28,8 +28,6 @@ SOFTWARE.
 #include <assert.h>
 #include <iostream>
 
-#include "file_includer.h"
-
 namespace Renderer
 {
 	ShaderManager::ShaderManager()
@@ -197,6 +195,7 @@ namespace Renderer
 		std::vector<VkShaderModule> shaderModules;
 		std::vector<std::vector<VkPipelineShaderStageCreateInfo>> createInfo(Renderer::SUBPASS_MAX);
 
+		fileFinder_.search_path().push_back(shaderSourceFolder_ + "include");
 		//set to true if one of the shaders fails to compile
 		bool failed = false;
 		for (size_t i = 0; i < shaderInfos_.size(); ++i)
@@ -254,6 +253,8 @@ namespace Renderer
 		auto& fileContent = ReadFile(shaderSourceFolder_ + info.fileName);
 		shaderc::CompileOptions compileOptions;
 		AddDefines(compileOptions, shaderIndex);
+
+		compileOptions.SetIncluder(std::make_unique<glslc::FileIncluder>(&fileFinder_));
 		
 		return compiler_.CompileGlslToSpv(fileContent.data(), fileContent.size(),
 			GetShaderKind(info.type), info.fileName.data(),

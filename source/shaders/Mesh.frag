@@ -1,6 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#include "Precision.comp"
+
 #define M_PI 3.1415926535897932384626433832795
 
 //Code from http://www.frostbite.com/2014/11/moving-frostbite-to-pbr/

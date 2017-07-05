@@ -28,7 +28,7 @@ SOFTWARE.
 #include <array>
 #include <map>
 #include <vulkan\vulkan.h>
-#include <libshaderc\include\shaderc\shaderc.hpp>
+#include "file_includer.h"
 
 #include "..\passes\Passes.h"
 
@@ -68,8 +68,9 @@ namespace Renderer
 
 		shaderc::SpvCompilationResult CompileShader(int shaderIndex);
 		void AddDefines(shaderc::CompileOptions& compileOptions, int shaderIndex);
-		
+
 		shaderc::Compiler compiler_;
+		shaderc_util::FileFinder fileFinder_;
     std::vector<VkShaderModule> shaders_;
     std::vector<std::vector<VkPipelineShaderStageCreateInfo>> createInfo_;
 
