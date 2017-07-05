@@ -545,7 +545,7 @@ namespace Renderer
 		{
 			mipMapping_.UpdateMipMapNodes(&gridLevels_[i], &gridLevels_[i + 1]);
 		}
-		neighborCells_.CalculateNeighbors(gridLevels_);
+		//neighborCells_.CalculateNeighbors(gridLevels_);
 
 		debugFilling_.SetImageCount(&gridLevels_[2]);
 
@@ -554,7 +554,7 @@ namespace Renderer
 		volumeMediaData_.atlasSideLength = atlasSideLength;
 		volumeMediaData_.imageResolutionOffset = GridConstants::imageResolution;
 		raymarchingData_.atlasSideLength = atlasSideLength;
-		neighborCells_.UpdateAtlasProperties(atlasSideLength);
+		//neighborCells_.UpdateAtlasProperties(atlasSideLength);
   }
 
 	

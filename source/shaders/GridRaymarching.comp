@@ -829,7 +829,11 @@ vec4 Raymarching(vec3 gridSpaceOrigin, vec3 worldSpaceOrigin, vec3 direction, fl
       if(accumScatteringTransmittance.w < 0.01)
       {
         accumScatteringTransmittance.w = 0.0f;
-        return accumScatteringTransmittance;
+        //return accumScatteringTransmittance;
+      }
+      if(gridStatus.currentLevel == 1)
+      {
+        return texValue;
       }
     }
     

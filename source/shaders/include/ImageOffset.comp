@@ -1,0 +1,10 @@
+const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
+const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
+
+ivec3 UnpackImageOffset(uint imageOffset)
+{
+  return ivec3(
+    imageOffset >> IMAGE_BIT_OFFSETS[0],
+    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
+    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
+}

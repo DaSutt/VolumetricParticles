@@ -35,7 +35,6 @@ namespace Renderer
 	class BufferManager;
 
 	//Fills the top level with specified values
-	//TODO: clear the image atlas
 	class GlobalVolume
 	{
 	public:
