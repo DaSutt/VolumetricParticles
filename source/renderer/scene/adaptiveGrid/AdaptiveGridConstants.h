@@ -28,7 +28,6 @@ namespace GridConstants
 {
 	constexpr int nodeResolution = 16;
 	constexpr int imageResolution = nodeResolution + 1;
-	constexpr int imageResolutionOffset = imageResolution + 2;
 
 	constexpr int nodeResolutionSquared = nodeResolution * nodeResolution;
 }

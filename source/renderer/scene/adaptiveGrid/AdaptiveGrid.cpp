@@ -499,7 +499,7 @@ namespace Renderer
 			const float nodeResolutionWithBorder = static_cast<float>(GridConstants::nodeResolution + 2);
 			raymarchingData_.textureFraction = GridConstants::nodeResolution / nodeResolutionWithBorder / raymarchingData_.atlasSideLength;
 			raymarchingData_.textureOffset = 1.0f / nodeResolutionWithBorder / raymarchingData_.atlasSideLength;
-			raymarchingData_.atlasTexelToNodeTexCoord = 1.0f / GridConstants::imageResolutionOffset / 
+			raymarchingData_.atlasTexelToNodeTexCoord = 1.0f / GridConstants::imageResolution / 
 				static_cast<float>(raymarchingData_.atlasSideLength);
 		}
     
@@ -552,7 +552,7 @@ namespace Renderer
 		debugFilling_.UpdateDebugNodes(gridLevels_);
 
 		volumeMediaData_.atlasSideLength = atlasSideLength;
-		volumeMediaData_.imageResolutionOffset = GridConstants::imageResolutionOffset;
+		volumeMediaData_.imageResolutionOffset = GridConstants::imageResolution;
 		raymarchingData_.atlasSideLength = atlasSideLength;
 		neighborCells_.UpdateAtlasProperties(atlasSideLength);
   }
@@ -704,7 +704,7 @@ namespace Renderer
 				if (fillImageIndices)
 				{
 					color = glm::vec4(nodeData.imageInfos_[i].image, 1.0f)
-						/ static_cast<float>((imageAtlas_.GetSideLength() * GridConstants::imageResolutionOffset));
+						/ static_cast<float>((imageAtlas_.GetSideLength() * GridConstants::imageResolution));
 				}
 				debugBoundingBoxes_.push_back({
 					WorldMatrix(level.nodeBoundingBoxes_[i]), color

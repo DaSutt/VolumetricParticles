@@ -64,7 +64,7 @@ namespace Renderer
 		{
 			imageInfos_[i].imageIndex += parentImageOffset;
 			const auto textureOffset = Math::Index1Dto3D(imageInfos_[i].imageIndex, atlasSideLength_) *
-				GridConstants::imageResolutionOffset;
+				GridConstants::imageResolution;
 			imageInfos_[i].image = textureOffset;
 			nodeInfos_[i].textureOffset = PackTextureOffset(textureOffset);
 
@@ -73,7 +73,7 @@ namespace Renderer
 			{
 				SetMipMapBit(nodeInfos_[i].textureOffset);
 				const auto textureOffset = Math::Index1Dto3D(mipMapImageIndex, atlasSideLength_) *
-					GridConstants::imageResolutionOffset;
+					GridConstants::imageResolution;
 				nodeInfos_[i].textureOffsetMipMap = PackTextureOffset(textureOffset);
 				imageInfos_[i].mipMap = textureOffset;
 			}

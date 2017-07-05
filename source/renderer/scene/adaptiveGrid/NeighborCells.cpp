@@ -46,7 +46,7 @@ namespace Renderer
 		maxGridPos_{ GridConstants::nodeResolution - 1}
 	{
 		atlasProperties_.resolution = GridConstants::imageResolution;
-		atlasProperties_.resolutionOffset = GridConstants::imageResolutionOffset;
+		atlasProperties_.resolutionOffset = GridConstants::imageResolution;
 	}
 
 	void NeighborCells::RequestResources(BufferManager* bufferManager, int frameCount, int atlasImageIndex)
@@ -467,9 +467,9 @@ namespace Renderer
 	{
 		std::array<glm::ivec3, 2> srcDstImageOffsets;
 		srcDstImageOffsets[0] = CalcGridPos(srcIndex, atlasProperties_.sideLength) *
-			GridConstants::imageResolutionOffset + glm::ivec3(1);
+			GridConstants::imageResolution + glm::ivec3(1);
 		srcDstImageOffsets[1] = CalcGridPos(dstIndex, atlasProperties_.sideLength) *
-			GridConstants::imageResolutionOffset + glm::ivec3(1);
+			GridConstants::imageResolution + glm::ivec3(1);
 
 		glm::ivec3 dir{ 0 };
 		dir[direction / 2] = 1;

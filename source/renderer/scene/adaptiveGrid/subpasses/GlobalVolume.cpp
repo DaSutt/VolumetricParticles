@@ -67,7 +67,7 @@ namespace Renderer
 		const auto& volumeState = GuiPass::GetVolumeState();
 		cbData_.globalValue = glm::vec4(0);
 		cbData_.groundFogValue = glm::vec4(0);
-		cbData_.groundFogTexelStart = GridConstants::imageResolutionOffset;
+		cbData_.groundFogTexelStart = GridConstants::imageResolution;
 		updated_ = false;
 
 		const float scattering = volumeState.scattering;
@@ -82,7 +82,7 @@ namespace Renderer
 		}
 
 		const int texelStart = groundFog->GetCoarseGridTexel();
-		if (texelStart != GridConstants::imageResolutionOffset - 1 &&
+		if (texelStart != GridConstants::imageResolution - 1 &&
 			(volumeState.scatteringVolumes != 0.0f || volumeState.absorptionVolumes != 0.0f))
 		{
 			const float scatFog = volumeState.scatteringVolumes + scattering;

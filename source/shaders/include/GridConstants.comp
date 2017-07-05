@@ -1,0 +1,2 @@
+const int NODE_RESOLUTION = 16;
+const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;

@@ -53,7 +53,7 @@ namespace Renderer
 		std::uniform_real_distribution<float> posDistribution(-5.0f, 5.0f);
 		//std::uniform_real_distribution<float> posDistributionY(-20.0f, 0.0f);
 		
-		debugParticleCount_ = 200;
+		debugParticleCount_ = 1;
 		
 		const int clusterCount = 1;
 		glm::vec3 clusterOffset = glm::vec3(-clusterCount * 10.0f, 0.0f, 0.0f);

@@ -31,7 +31,7 @@ SOFTWARE.
 namespace Renderer
 {
 	ImageAtlas::ImageAtlas() :
-		cbData_{GridConstants::imageResolutionOffset, GridConstants::imageResolution}
+		cbData_{GridConstants::imageResolution, GridConstants::imageResolution}
 	{}
 
 	void ImageAtlas::RequestResources(ImageManager* imageManager, BufferManager* bufferManager, 
@@ -70,7 +70,7 @@ namespace Renderer
 
 	void ImageAtlas::Resize(ImageManager* imageManager)
 	{
-		VkDeviceSize newSize = sideLength_ * GridConstants::imageResolutionOffset;
+		VkDeviceSize newSize = sideLength_ * GridConstants::imageResolution;
 		auto& maxSize = imageResource.maxSize;
 		
 		if (maxSize < newSize)

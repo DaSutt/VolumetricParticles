@@ -123,7 +123,7 @@ namespace Renderer
 	{
 		atlasSideLength_ = sideLength;
 
-		const int texelCount = GridConstants::imageResolutionOffset * atlasSideLength_;
+		const int texelCount = GridConstants::imageResolution * atlasSideLength_;
 
 		cbData_.imageResolutionOffsetRec = 1.0f / (texelCount);
 		cbData_.atlasTexelToTexCoord = 1.0f / (texelCount);
@@ -387,14 +387,14 @@ namespace Renderer
 		for (size_t i = 0; i < mipMapData_.size(); ++i)
 		{
 			const auto atlasOffset = Math::Index1Dto3D(mipMapOffsets_[i], atlasSideLength) *
-				GridConstants::imageResolutionOffset;
+				GridConstants::imageResolution;
 			mipMapData_[i].parentTexel += NodeData::PackTextureOffset(atlasOffset);
 		}
 
 		for (auto& offset : imageOffsets_)
 		{
 			const auto atlasOffset = Math::Index1Dto3D(offset.mipMapSourceOffset, atlasSideLength)
-				* GridConstants::imageResolutionOffset + 1;
+				* GridConstants::imageResolution + 1;
 			offset.mipMapSourceOffset = NodeData::PackTextureOffset(atlasOffset);
 		}
 

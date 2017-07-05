@@ -23,10 +23,7 @@ SOFTWARE.
 */
 
 #version 450
-
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
-const int IMAGE_RESOLUTION_OFFSET = IMAGE_RESOLUTION + 2;
+#include "GridConstants.comp"
 
 layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
 layout(set = 0, binding = 1) uniform perFrameData
@@ -36,13 +33,14 @@ layout(set = 0, binding = 1) uniform perFrameData
   int groundFogTexelStart;
 } perFrame_;
 
-layout(local_size_x = IMAGE_RESOLUTION_OFFSET, local_size_y = IMAGE_RESOLUTION_OFFSET, local_size_z = 1) in;
+//Fill the global volume and the ground fog below the interface
+layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
 void main()
 {
   const vec4 globalValue = perFrame_.globalValue;
   const vec4 groundFogValue = vec4(perFrame_.groundFogValue, 0.0f);
   
-  for(int y = 0; y < IMAGE_RESOLUTION_OFFSET; ++y)
+  for(int y = 0; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 texel = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
     
