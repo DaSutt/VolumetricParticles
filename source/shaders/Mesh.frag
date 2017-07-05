@@ -140,5 +140,5 @@ void main()
   //{
   //  radiance = radiance * 0.5 + vec3(0.5,0.5,0.0);
   //}
-	outColor = vec4(radiance, 1.0);
+  outColor = vec4(radiance, 1.0);
 }

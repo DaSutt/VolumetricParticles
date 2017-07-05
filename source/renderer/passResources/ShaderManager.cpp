@@ -36,27 +36,29 @@ namespace Renderer
 	{
 		//TODO replace with config file
 		shaderInfos_ = {
-			{ "Mesh.vert", "main", TYPE_VERT, SUBPASS_MESH, 0, 0 },
-			{ "Mesh.frag", "main", TYPE_FRAG, SUBPASS_MESH, 0, 0 },
-			{ "Mesh_DepthOnly.vert", "main", TYPE_VERT, SUBPASS_MESH_DEPTH_ONLY, 0, 0 },
-			{ "Mesh_DepthOnly.frag", "main", TYPE_FRAG, SUBPASS_MESH_DEPTH_ONLY, 0, 0 },
-			{ "PostProcess.vert", "main", TYPE_VERT, SUBPASS_POSTPROCESS, 0, 0 },
-			{ "PostProcess.frag", "main", TYPE_FRAG, SUBPASS_POSTPROCESS, 0, 0 },
-			{ "PostProcess_Debug.vert", "main", TYPE_VERT, SUBPASS_POSTPROCESS_DEBUG, 0, 0 },
-			{ "PostProcess_Debug.frag", "main", TYPE_FRAG, SUBPASS_POSTPROCESS_DEBUG, 0, 0 },
-			{ "Gui.vert", "main", TYPE_VERT, SUBPASS_GUI, 0, 0 },
-			{ "Gui.frag", "main", TYPE_FRAG, SUBPASS_GUI, 0, 0 },
-			{ "ShadowMap.vert", "main", TYPE_VERT, SUBPASS_SHADOW_MAP, 0, 0 },
-			{ "ShadowMap.frag", "main", TYPE_FRAG, SUBPASS_SHADOW_MAP, 0, 0 },
-			{ "GridGlobal.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_GLOBAL, 0, 0 },
-			{ "GridGroundFog.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_GROUND_FOG, 0, 0 },
-			{ "GridParticles.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_PARTICLES, 0, 0 },
-			{ "GridDebugFilling.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_DEBUG_FILLING, 0,0 },
-			{ "GridNeighborUpdate.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_NEIGHBOR_UPDATE, 0, 0 },
-			{ "GridMipMapping.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING, 0,0 },
-			{ "GridMipMappingMerging.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING_MERGING, 0,0 },
-			{ "GridRaymarching.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_RAYMARCHING, 0, 0 }
+			{ "Mesh.vert", "main", TYPE_VERT, SUBPASS_MESH },
+			{ "Mesh.frag", "main", TYPE_FRAG, SUBPASS_MESH, {DEFINE_TEST} },
+			{ "Mesh_DepthOnly.vert", "main", TYPE_VERT, SUBPASS_MESH_DEPTH_ONLY},
+			{ "Mesh_DepthOnly.frag", "main", TYPE_FRAG, SUBPASS_MESH_DEPTH_ONLY},
+			{ "PostProcess.vert", "main", TYPE_VERT, SUBPASS_POSTPROCESS},
+			{ "PostProcess.frag", "main", TYPE_FRAG, SUBPASS_POSTPROCESS},
+			{ "PostProcess_Debug.vert", "main", TYPE_VERT, SUBPASS_POSTPROCESS_DEBUG},
+			{ "PostProcess_Debug.frag", "main", TYPE_FRAG, SUBPASS_POSTPROCESS_DEBUG},
+			{ "Gui.vert", "main", TYPE_VERT, SUBPASS_GUI},
+			{ "Gui.frag", "main", TYPE_FRAG, SUBPASS_GUI},
+			{ "ShadowMap.vert", "main", TYPE_VERT, SUBPASS_SHADOW_MAP},
+			{ "ShadowMap.frag", "main", TYPE_FRAG, SUBPASS_SHADOW_MAP},
+			{ "GridGlobal.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_GLOBAL},
+			{ "GridGroundFog.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_GROUND_FOG},
+			{ "GridParticles.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_PARTICLES},
+			{ "GridDebugFilling.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_DEBUG_FILLING},
+			{ "GridNeighborUpdate.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_NEIGHBOR_UPDATE},
+			{ "GridMipMapping.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING},
+			{ "GridMipMappingMerging.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING_MERGING},
+			{ "GridRaymarching.comp", "main", TYPE_COMP, SUBPASS_VOLUME_ADAPTIVE_RAYMARCHING}
 		};
+
+		defineInfos_[DEFINE_TEST] = "DEFINE_TEST";
 	}
 
 	namespace
@@ -225,8 +227,6 @@ namespace Renderer
 			}
 		}
 
-
-
 		//release old shaders and replace with new ones
 		if (!failed)
 		{
@@ -253,10 +253,23 @@ namespace Renderer
 
 		auto& fileContent = ReadFile(shaderSourceFolder_ + info.fileName);
 		shaderc::CompileOptions compileOptions;
-
+		AddDefines(compileOptions, shaderIndex);
+		
 		return compiler_.CompileGlslToSpv(fileContent.data(), fileContent.size(),
 			GetShaderKind(info.type), info.fileName.data(),
 			info.functionName.data(), compileOptions);
+	}
+
+	void ShaderManager::AddDefines(shaderc::CompileOptions& compileOptions, int shaderIndex)
+	{
+		const auto& defines = shaderInfos_[shaderIndex].defines;
+		if (!defines.empty())
+		{
+			for (const int define : defines)
+			{
+				compileOptions.AddMacroDefinition(defineInfos_[define]);
+			}
+		}
 	}
 
 	void ShaderManager::Release(VkDevice device)

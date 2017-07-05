@@ -25,6 +25,7 @@ SOFTWARE.
 #pragma once
 
 #include <vector>
+#include <array>
 #include <map>
 #include <vulkan\vulkan.h>
 #include <libshaderc\include\shaderc\shaderc.hpp>
@@ -50,25 +51,23 @@ namespace Renderer
 		void Release(VkDevice device);
     const std::vector<VkPipelineShaderStageCreateInfo>& GetShaderStageInfo(Renderer::SubPassType pass) const;
   private:
-
-    struct ShaderInfo
+		struct ShaderInfo
     {
       std::string fileName;
       std::string functionName;
       Type type;
       SubPassType pass;
-      int includeFiles;
-      int defines;
+			std::vector<int> defines;
     };
 
-    struct IncludeData
-    {
-      std::string fileName;
-      std::string content;
-      IncludeData(const std::string fileName);
-    };
-		
-    shaderc::SpvCompilationResult CompileShader(int shaderIndex);
+		enum DefineBits
+		{
+			DEFINE_TEST,
+			DEFINE_MAX
+		};
+
+		shaderc::SpvCompilationResult CompileShader(int shaderIndex);
+		void AddDefines(shaderc::CompileOptions& compileOptions, int shaderIndex);
 		
 		shaderc::Compiler compiler_;
     std::vector<VkShaderModule> shaders_;
@@ -77,5 +76,6 @@ namespace Renderer
 		//TODO replace this with general option for shader path
 		std::string shaderSourceFolder_ = "..\\source\\shaders\\";
     std::vector<ShaderInfo> shaderInfos_;
+		std::array<std::string, DEFINE_MAX> defineInfos_;
   };
 }
