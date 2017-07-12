@@ -28,6 +28,30 @@ SOFTWARE.
 
 namespace DebugData
 {
+	//Node data
+	struct NodeInfo
+	{
+		uint32_t imageOffset;
+		uint32_t imageOffsetMipMap;
+		int childOffset;
+	};
+	struct NodeInfoContainer
+	{
+		std::vector<NodeInfo> data;
+	};
+	struct LevelDataContainer
+	{
+		std::vector<Renderer::LevelData> data;
+	};
+	struct AcitveBitsContainer
+	{
+		std::vector<uint32_t> data;
+	};
+
 	extern Renderer::RaymarchingData raymarchData_;
+	extern NodeInfoContainer nodeInfos_;
+	extern LevelDataContainer levelData_;
+	extern AcitveBitsContainer activeBits_;
+
 	extern glm::vec4 raymarchingResults_;
 }

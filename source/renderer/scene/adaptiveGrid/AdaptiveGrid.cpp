@@ -468,7 +468,7 @@ namespace Renderer
 			if (volumeState.debugTraversal)
 			{
 				DebugData::raymarchData_ = raymarchingData_;
-				debugTraversal_.levelData_.data = gridLevelData_;
+				DebugData::levelData_.data = gridLevelData_;
 			}
 
 			groundFog_.UpdateCBData(volumeState.fogHeight,
@@ -625,11 +625,11 @@ namespace Renderer
 		switch (type)
 		{
 		case GridLevel::BUFFER_NODE_INFOS:
-			debugTraversal_.nodeInfos_.data.resize(size / sizeof(NodeInfo));
-			return debugTraversal_.nodeInfos_.data.data();
+			DebugData::nodeInfos_.data.resize(size / sizeof(NodeInfo));
+			return DebugData::nodeInfos_.data.data();
 		case GridLevel::BUFFER_ACTIVE_BITS:
-			debugTraversal_.activeBits_.data.resize(size / sizeof(uint32_t));
-			return debugTraversal_.activeBits_.data.data();
+			DebugData::activeBits_.data.resize(size / sizeof(uint32_t));
+			return DebugData::activeBits_.data.data();
 		case GridLevel::BUFFER_BIT_COUNTS:
 			debugTraversal_.bitCounts_.data.resize(size / sizeof(int));
 			return debugTraversal_.bitCounts_.data.data();

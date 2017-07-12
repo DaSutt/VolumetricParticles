@@ -27,5 +27,9 @@ SOFTWARE.
 namespace DebugData
 {
 	Renderer::RaymarchingData raymarchData_;
+	NodeInfoContainer nodeInfos_;
+	LevelDataContainer levelData_;
+	AcitveBitsContainer activeBits_;
+
 	glm::vec4 raymarchingResults_;
 }

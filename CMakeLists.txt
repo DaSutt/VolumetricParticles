@@ -15,7 +15,8 @@ include_directories(ThirdParty/glm
 					ThirdParty
           ThirdParty/shaderc
           ThirdParty/shaderc/glslc/src
-          ThirdParty/shaderc/libshaderc_util/include)
+          ThirdParty/shaderc/libshaderc_util/include
+          source/shaders/include)
 file(GLOB_RECURSE SRC_THIRD_PARTY
 	"ThirdParty/imgui/imgui.cpp"
 	"ThirdParty/imgui/imgui_draw.cpp"

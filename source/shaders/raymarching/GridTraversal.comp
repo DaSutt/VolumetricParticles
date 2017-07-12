@@ -142,7 +142,7 @@ GridStatus_New TraverseGrid(const vec3 gridSpacePos)
   {
     const int childLevel = level + 1;
     //Use the grid space position to calculate the position of the child node
-    const vec3 childNodePos = CalcGridNodePos(gridSpacePos, gridOffset, childLevel);
+    const vec3 childNodePos = CalcGridNodePos(gridSpacePos, gridOffset, level);
     const ivec2 bitIndexOffset = CalcBitIndex_New(childNodePos, parentNodeIndex, NODE_RESOLUTION);    
     
     //Stop the traversal if no active childs are found or max level is reached
@@ -154,7 +154,7 @@ GridStatus_New TraverseGrid(const vec3 gridSpacePos)
 //  //  parentNodeIndex = GetChildNodeIndex(parentNode, childBitIndex);
 //  //  sampleData = SampleGrid(sampleData, gridSpacePos, 
 //  //    parentNodeIndex, childLevel);
-    status.currentLevel = level;
+    status.currentLevel = childLevel;
   }
   
   status.accumTexValue = vec4(sampleData.accumTexValue, 0.0f);

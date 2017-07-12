@@ -56,34 +56,13 @@ namespace Renderer
 	class DebugTraversal
 	{
 	public:
-		
-		
-		//Node data
-		struct NodeInfo
-		{
-			uint32_t imageOffset;
-			uint32_t imageOffsetMipMap;
-			int childOffset;
-		};
-
 		void Traversal(QueueManager* queueManager, BufferManager* bufferManager, ImageManager* imageManager, int x, int y);
 		void SetImageIndices(int imageAtlas, int depth, int shadowMap, int noiseTexture);
 
-		struct LevelDataContainer
-		{
-			std::vector<LevelData> data;
-		};
-		LevelDataContainer levelData_;
-		struct NodeInfoContainer
-		{
-			std::vector<NodeInfo> data;
-		};
-		NodeInfoContainer nodeInfos_;
-		struct AcitveBitsContainer
-		{
-			std::vector<uint32_t> data;
-		};
-		AcitveBitsContainer activeBits_;
+		
+		
+		
+		
 		struct BitCountsContainer
 		{
 			std::vector<int> data;
