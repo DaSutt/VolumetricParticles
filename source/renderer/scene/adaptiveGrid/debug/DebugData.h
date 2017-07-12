@@ -22,10 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef GRIDCONSTANTS_H
-#define GRIDCONSTANTS_H
+#pragma once
 
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+#include "..\AdaptiveGridData.h"
 
-#endif
+namespace DebugData
+{
+	extern Renderer::RaymarchingData raymarchData_;
+	extern glm::vec4 raymarchingResults_;
+}

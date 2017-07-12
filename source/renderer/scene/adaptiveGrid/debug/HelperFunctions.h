@@ -22,10 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef GRIDCONSTANTS_H
-#define GRIDCONSTANTS_H
+#pragma once
 
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+#include "glm\glm.hpp"
 
-#endif
+namespace DebugData
+{
+	void imageStore(glm::vec4& target, const glm::ivec3& imagePos, const glm::vec4& value);
+}

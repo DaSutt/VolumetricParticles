@@ -29,7 +29,7 @@ SOFTWARE.
 #include "..\..\..\scene\components\AABoundingBox.h"
 #include "GridLevel.h"
 #include "..\..\ShadowMap.h"
-#include "DebugTraversal.h"
+#include "debug\DebugTraversal.h"
 #include "GroundFog.h"
 #include "MipMapping.h"
 #include "NeighborCells.h"

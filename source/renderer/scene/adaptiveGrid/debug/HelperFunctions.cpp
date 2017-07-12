@@ -22,10 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef GRIDCONSTANTS_H
-#define GRIDCONSTANTS_H
+#include "HelperFunctions.h"
 
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
+#include <iostream>
 
-#endif
+namespace DebugData
+{
+	void imageStore(glm::vec4& target, const glm::ivec3& imagePos, const glm::vec4& value)
+	{
+		target = value;
+		std::printf("Storing %f %f %f %f at position %d %d %d\n",
+			value.x, value.y, value.z, value.w,
+			imagePos.x, imagePos.y, imagePos.z);
+	}
+}

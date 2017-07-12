@@ -96,7 +96,7 @@ void main()
   
   const vec4 fogValue = vec4(cb_.scattering, cb_.absorption, cb_.phaseG, 0.0);
   
-  const ivec3 imageOffset = UnpackImageOffset(curr.imageOffset);
+  const ivec3 imageOffset = UnpackImageOffset_I(curr.imageOffset);
   bool edgeValue = true;
   for(int y = cb_.edgeTexelY - 1; y < IMAGE_RESOLUTION; ++y)
   {

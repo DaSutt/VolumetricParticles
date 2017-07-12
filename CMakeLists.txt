@@ -56,6 +56,7 @@ file(GLOB SRC_RENDERER_WRAPPER "source/renderer/wrapper/*.cpp" "source/renderer/
 file(GLOB SRC_RENDERER_SCENE "source/renderer/scene/*.cpp" "source/renderer/scene/*.h")
 file(GLOB SRC_RENDERER_SCENE_RENDERABLES "source/renderer/scene/renderables/*.cpp" "source/renderer/scene/renderables/*.h")
 file(GLOB SRC_RENDERER_SCENE_ADAPTIVEGRID "source/renderer/scene/adaptiveGrid/*")
+file(GLOB SRC_RENDERER_SCENE_ADAPTIVEGRID_DEBUG "source/renderer/scene/adaptiveGrid/debug/*")
 file(GLOB SRC_RENDERER_SCENE_ADAPTIVEGRID_SUBPASSES "source/renderer/scene/adaptiveGrid/subpasses/*")
 file(GLOB SRC_SHADERS "source/shaders/*")
 file(GLOB SRC_SHADERS_INCLUDE "source/shaders/include/*")
@@ -81,6 +82,7 @@ add_executable(Particle-Project
   ${SRC_RENDERER_SCENE_RENDERABLES}
   ${SRC_RENDERER_SCENE_ADAPTIVEGRID}
   ${SRC_RENDERER_SCENE_ADAPTIVEGRID_SUBPASSES}
+  ${SRC_RENDERER_SCENE_ADAPTIVEGRID_DEBUG}
   ${SRC_SCENE}
   ${SRC_SCENE_GRID}
   ${SRC_SCENE_COMPONENTS}
@@ -105,6 +107,7 @@ source_group("renderer\\wrapper" FILES ${SRC_RENDERER_WRAPPER})
 source_group("renderer\\scene" FILES ${SRC_RENDERER_SCENE})
 source_group("renderer\\scene\\renderables" FILES ${SRC_RENDERER_SCENE_RENDERABLES})
 source_group("renderer\\scene\\adaptiveGrid" FILES ${SRC_RENDERER_SCENE_ADAPTIVEGRID})
+source_group("renderer\\scene\\adaptiveGrid\\debug" FILES ${SRC_RENDERER_SCENE_ADAPTIVEGRID_DEBUG})
 source_group("renderer\\scene\\adaptiveGrid\\subpasses" FILES ${SRC_RENDERER_SCENE_ADAPTIVEGRID_SUBPASSES})
 source_group("third_party" FILES ${SRC_THIRD_PARTY})
 source_group("scene\\components" FILES ${SRC_SCENE_COMPONENTS})

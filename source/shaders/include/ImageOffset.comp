@@ -22,13 +22,28 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef IMAGEOFFSET_H
+#define IMAGEOFFSET_H
+
 const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
 const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
+const uint IMAGE_LEAF_BIT = 1;
+const uint IMAGE_MIPMAP_BIT = 0;
 
-ivec3 UnpackImageOffset(uint imageOffset)
+ivec3 UnpackImageOffset_I(uint imageOffset)
 {
   return ivec3(
     imageOffset >> IMAGE_BIT_OFFSETS[0],
     (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
     (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
 }
+
+vec3 UnpackImageOffset(uint imageOffset)
+{
+  return vec3(
+    imageOffset >> IMAGE_BIT_OFFSETS[0],
+    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
+    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
+}
+
+#endif

@@ -63,8 +63,7 @@ namespace Renderer
 		for (size_t i = 0; i < imageInfos_.size(); ++i)
 		{
 			imageInfos_[i].imageIndex += parentImageOffset;
-			const auto textureOffset = Math::Index1Dto3D(imageInfos_[i].imageIndex, atlasSideLength_) *
-				GridConstants::imageResolution;
+			const auto textureOffset = Math::Index1Dto3D(imageInfos_[i].imageIndex, atlasSideLength_);
 			imageInfos_[i].image = textureOffset;
 			nodeInfos_[i].textureOffset = PackTextureOffset(textureOffset);
 
@@ -72,8 +71,7 @@ namespace Renderer
 			if (mipMapImageIndex != -1)
 			{
 				SetMipMapBit(nodeInfos_[i].textureOffset);
-				const auto textureOffset = Math::Index1Dto3D(mipMapImageIndex, atlasSideLength_) *
-					GridConstants::imageResolution;
+				const auto textureOffset = Math::Index1Dto3D(mipMapImageIndex, atlasSideLength_);
 				nodeInfos_[i].textureOffsetMipMap = PackTextureOffset(textureOffset);
 				imageInfos_[i].mipMap = textureOffset;
 			}

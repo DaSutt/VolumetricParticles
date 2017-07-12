@@ -41,6 +41,7 @@ SOFTWARE.
 #include "..\..\..\utility\Status.h"
 
 #include "AdaptiveGridConstants.h"
+#include "debug\DebugData.h"
 
 #include <glm\gtc\matrix_transform.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
@@ -466,7 +467,7 @@ namespace Renderer
 			
 			if (volumeState.debugTraversal)
 			{
-				debugTraversal_.raymarchData_ = raymarchingData_;
+				DebugData::raymarchData_ = raymarchingData_;
 				debugTraversal_.levelData_.data = gridLevelData_;
 			}
 
