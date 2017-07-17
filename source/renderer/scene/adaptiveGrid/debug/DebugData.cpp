@@ -30,6 +30,8 @@ namespace DebugData
 	NodeInfoContainer nodeInfos_;
 	LevelDataContainer levelData_;
 	AcitveBitsContainer activeBits_;
+	BitCountsContainer bitCounts_;
+	ChildIndexContainer childIndices_;
 
 	glm::vec4 raymarchingResults_;
 }

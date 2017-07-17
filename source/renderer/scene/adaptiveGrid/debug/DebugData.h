@@ -47,11 +47,21 @@ namespace DebugData
 	{
 		std::vector<uint32_t> data;
 	};
-
+	struct BitCountsContainer
+	{
+		std::vector<int> data;
+	};
+	struct ChildIndexContainer
+	{
+		std::vector<int> indices;
+	};
+	
 	extern Renderer::RaymarchingData raymarchData_;
 	extern NodeInfoContainer nodeInfos_;
 	extern LevelDataContainer levelData_;
 	extern AcitveBitsContainer activeBits_;
+	extern BitCountsContainer bitCounts_;
+	extern ChildIndexContainer childIndices_;
 
 	extern glm::vec4 raymarchingResults_;
 }

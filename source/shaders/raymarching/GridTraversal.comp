@@ -123,6 +123,26 @@ bool BitActive_New(ivec2 bitIndexOffset)
   return bool((activeBits_.data[bitIndexOffset.x] >> bitIndexOffset.y) & 1);
 }
 
+int BitCounting_New(int position, uint bits) {
+  uint pos = uint(position);
+  uint value = bits & ((1 << pos) - 1);	//mask all higher bits
+  uint count = 0;
+
+  value = value - ((value >> 1) & 0x55555555);
+	value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
+  count = ((value + (value >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+  return int(count);
+}
+
+int GetChildNodeIndex_New(ivec2 bitIndexOffset, int level, int parentNodeIndex)
+{
+  const int bitCount = bitCounts_.data[bitIndexOffset.x] +
+    BitCounting_New(bitIndexOffset.y, activeBits_.data[bitIndexOffset.x]);
+  const int childIndex = bitCount + levelData_.data[level].childOffset + 
+    nodeInfos_.data[parentNodeIndex].childOffset;
+  return childIndices_.indices[childIndex] + levelData_.data[level].childOffset;
+}
+
 //Traverse all available grid levels starting at the root node at the grid space position 
 //Accumulate the volumetric coefficients
 GridStatus_New TraverseGrid(const vec3 gridSpacePos)
@@ -148,10 +168,15 @@ GridStatus_New TraverseGrid(const vec3 gridSpacePos)
     //Stop the traversal if no active childs are found or max level is reached
     if(childLevel == MAX_LEVELS - 1 || !BitActive_New(bitIndexOffset))
     {
+      if(childLevel == MAX_LEVELS - 1 && BitActive_New(bitIndexOffset))
+      {
+        status.currentLevel = childLevel;
+      }
       break;
     }
-//  //  
-//  //  parentNodeIndex = GetChildNodeIndex(parentNode, childBitIndex);
+    
+    parentNodeIndex = GetChildNodeIndex_New(bitIndexOffset, childLevel, parentNodeIndex);
+    gridOffset = levelData_.data[level].childCellSize * vec3(childNodePos);
 //  //  sampleData = SampleGrid(sampleData, gridSpacePos, 
 //  //    parentNodeIndex, childLevel);
     status.currentLevel = childLevel;

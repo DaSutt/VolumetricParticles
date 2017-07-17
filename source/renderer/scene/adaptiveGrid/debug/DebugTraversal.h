@@ -59,21 +59,6 @@ namespace Renderer
 		void Traversal(QueueManager* queueManager, BufferManager* bufferManager, ImageManager* imageManager, int x, int y);
 		void SetImageIndices(int imageAtlas, int depth, int shadowMap, int noiseTexture);
 
-		
-		
-		
-		
-		struct BitCountsContainer
-		{
-			std::vector<int> data;
-		};
-		BitCountsContainer bitCounts_;
-		struct ChildIndexContainer
-		{
-			std::vector<int> indices;
-		};
-		ChildIndexContainer childIndices_;
-
 	private:
 		enum Images
 		{

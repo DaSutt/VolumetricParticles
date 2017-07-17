@@ -61,6 +61,7 @@ file(GLOB SRC_RENDERER_SCENE_ADAPTIVEGRID_DEBUG "source/renderer/scene/adaptiveG
 file(GLOB SRC_RENDERER_SCENE_ADAPTIVEGRID_SUBPASSES "source/renderer/scene/adaptiveGrid/subpasses/*")
 file(GLOB SRC_SHADERS "source/shaders/*")
 file(GLOB SRC_SHADERS_INCLUDE "source/shaders/include/*")
+file(GLOB SRC_SHADERS_RAYMARCHING "source/shaders/raymarching/*")
 file(GLOB SRC_UTILITY "source/utility/*.cpp" "source/utility/*.h")
   
 add_executable(Particle-Project 
@@ -92,6 +93,7 @@ add_executable(Particle-Project
 	${SRC_THIRD_PARTY}
   ${SRC_SHADERS}
   ${SRC_SHADERS_INCLUDE}
+  ${SRC_SHADERS_RAYMARCHING}
   ${SRC_UTILITY})
 	
 source_group("input" FILES ${SRC_INPUT})
@@ -100,6 +102,7 @@ source_group("scene" FILES ${SRC_SCENE})
 source_group("renderer" FILES ${SRC_RENDERER})
 source_group("renderer\\shaders" FILES ${SRC_SHADERS})
 source_group("renderer\\shaders\\include" FILES ${SRC_SHADERS_INCLUDE})
+source_group("renderer\\shaders\\raymarching" FILES ${SRC_SHADERS_RAYMARCHING})
 source_group("renderer\\passes" FILES ${SRC_RENDERER_PASSES})
 source_group("renderer\\passResources" FILES ${SRC_RENDERER_PASS_RESOURCES})
 source_group("renderer\\resources" FILES ${SRC_RENDERER_RESOURCES})

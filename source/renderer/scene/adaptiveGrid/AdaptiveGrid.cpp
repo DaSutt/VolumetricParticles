@@ -631,11 +631,11 @@ namespace Renderer
 			DebugData::activeBits_.data.resize(size / sizeof(uint32_t));
 			return DebugData::activeBits_.data.data();
 		case GridLevel::BUFFER_BIT_COUNTS:
-			debugTraversal_.bitCounts_.data.resize(size / sizeof(int));
-			return debugTraversal_.bitCounts_.data.data();
+			DebugData::bitCounts_.data.resize(size / sizeof(int));
+			return DebugData::bitCounts_.data.data();
 		case GridLevel::BUFFER_CHILDS:
-			debugTraversal_.childIndices_.indices.resize(size / sizeof(int));
-			return debugTraversal_.childIndices_.indices.data();
+			DebugData::childIndices_.indices.resize(size / sizeof(int));
+			return DebugData::childIndices_.indices.data();
 		default:
 			printf("Invalid buffer type to get copy dst\n");
 			break;
