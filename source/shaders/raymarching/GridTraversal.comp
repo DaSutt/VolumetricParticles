@@ -31,7 +31,7 @@ SOFTWARE.
 
 const int MAX_LEVELS = 3;
 
-struct GridStatus_New
+struct GridStatus
 {
   //vec4(scattering, extinction, phase g, unused)
   vec4 accumTexValue;   
@@ -39,7 +39,7 @@ struct GridStatus_New
   int currentLevel;
 };
 
-struct SampleData_New
+struct SampleData
 {
   //scattering, extinction, phase g
   vec3 accumTexValue; 
@@ -49,7 +49,7 @@ struct SampleData_New
 };
 
 //Returns the image offset in texels inside the image atlas
-vec3 GetImageOffset_New(int nodeIndex, bool mipMapping)
+vec3 GetImageOffset(const int nodeIndex, const bool mipMapping)
 {
   uint imageOffset = nodeInfos_.data[nodeIndex].imageOffset;
 //  //Set image offset to mipmap if node has one
@@ -59,22 +59,19 @@ vec3 GetImageOffset_New(int nodeIndex, bool mipMapping)
 }
 
 //Calculates texture coordinate int [0,1] range for current node
-vec3 CalcTexCoord_New(vec3 globalPos, int level) {
-	float cellSize = levelData_.data[level].gridCellSize;
-  return fract((globalPos) / cellSize);
+vec3 CalcTexCoord(const vec3 globalPos, const int level) {
+  return fract((globalPos) / levelData_.data[level].gridCellSize);
 }
 
-
 //Calculates the texture coordinate inside of the image atlas for the current node
-vec3 AtlasTextureCoordinate_New(vec3 gridSpacePos, int nodeIndex, int level)
+vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const int level)
 {
-  const vec3 imageOffset = GetImageOffset_New(nodeIndex, false);
-  const vec3 texCoord = CalcTexCoord_New(gridSpacePos, level);
-  //
+  const vec3 imageOffset = GetImageOffset(nodeIndex, false);
+  const vec3 texCoord = CalcTexCoord(gridSpacePos, level);
+  
   //return (texCoord * raymarchData_.textureFraction + raymarchData_.textureOffset) +
   //  imageOffset * raymarchData_.atlasTexelToNodeTexCoord;
-  return imageOffset/3.0f;
-  return vec3(0.0,1.0,0.0);
+  return imageOffset;
 }
 //
 ////Combine the already accumulated texture values of multiple levels with
@@ -92,38 +89,42 @@ vec3 AtlasTextureCoordinate_New(vec3 gridSpacePos, int nodeIndex, int level)
 //Returns: ivec2(
 //  index into the active bits array, 
 //  index of the bit inside of the array element)
-ivec2 CalcBitIndex_New(vec3 gridPos, int parentNodeIndex, int resolution) {
-	const int bitIndex = int((gridPos.z * resolution + gridPos.y) * resolution + gridPos.x);
+ivec2 CalcBitIndex(const vec3 gridPos, const int parentNodeIndex) {
+	const int bitIndex = int((gridPos.z * NODE_RESOLUTION + gridPos.y) 
+    * NODE_RESOLUTION + gridPos.x);
   return ivec2(
     bitIndex / 32 + parentNodeIndex * 128,
     bitIndex % 32);
 }
 
-SampleData_New SampleGrid(SampleData_New sampleData, const vec3 gridSpacePos, 
+//Sample the grid at the position for a certain level
+//Accumulates this value with the already sampled data
+SampleData SampleGrid(SampleData sampleData, const vec3 gridSpacePos, 
   const int nodeIndex, const int level)
 {
-  sampleData.accumTexValue.x = 1.0f;
-  const vec3 texCoord = AtlasTextureCoordinate_New(gridSpacePos, nodeIndex, level);
+  const vec3 texCoord = AtlasTextureCoordinate(gridSpacePos, nodeIndex, level);
 //  const vec4 texValue = texture(textureAtlas_, texCoord);
 //  
 //  sampleData.accumTexValue = Accumulate(sampleData.accumTexValue, texValue);
 //  sampleData.phaseCount = texValue.x > 0.0f ? sampleData.phaseCount + 1 : sampleData.phaseCount;
+	
   sampleData.accumTexValue = texCoord;
   return sampleData;
 }
 
 //Calculate the child node position inside the parent node
-ivec3 CalcGridNodePos(vec3 gridSpacePos, vec3 gridOffset, int parentLevel)
+ivec3 CalcGridNodePos(const vec3 gridSpacePos, const vec3 gridOffset, const int parentLevel)
 {
   return ivec3((gridSpacePos - gridOffset) / levelData_.data[parentLevel].childCellSize);
 }
 
-bool BitActive_New(ivec2 bitIndexOffset)
+bool BitActive(const ivec2 bitIndexOffset)
 {
   return bool((activeBits_.data[bitIndexOffset.x] >> bitIndexOffset.y) & 1);
 }
 
-int BitCounting_New(int position, uint bits) {
+//BUG: if the uint variable is constant compiling the compute pipeline failes
+int BitCounting(const int position, uint bits) {
   uint pos = uint(position);
   uint value = bits & ((1 << pos) - 1);	//mask all higher bits
   uint count = 0;
@@ -134,43 +135,50 @@ int BitCounting_New(int position, uint bits) {
   return int(count);
 }
 
-int GetChildNodeIndex_New(ivec2 bitIndexOffset, int level, int parentNodeIndex)
+//Use bit counting on the active child bit to
+//lookup the index for this child inside the node array
+int GetChildNodeIndex(const ivec2 bitIndexOffset, const int level, const int parentNodeIndex)
 {
   const int bitCount = bitCounts_.data[bitIndexOffset.x] +
-    BitCounting_New(bitIndexOffset.y, activeBits_.data[bitIndexOffset.x]);
-  const int childIndex = bitCount + levelData_.data[level].childOffset + 
-    nodeInfos_.data[parentNodeIndex].childOffset;
-  return childIndices_.indices[childIndex] + levelData_.data[level].childOffset;
+    BitCounting(bitIndexOffset.y, activeBits_.data[bitIndexOffset.x]);
+  const int childIndex = bitCount + nodeInfos_.data[parentNodeIndex].childOffset;
+  return childIndices_.indices[childIndex];
 }
 
 //Traverse all available grid levels starting at the root node at the grid space position 
 //Accumulate the volumetric coefficients
-GridStatus_New TraverseGrid(const vec3 gridSpacePos)
+GridStatus TraverseGrid(const vec3 gridSpacePos)
 {
-  GridStatus_New status;
+  GridStatus status;
   status.accumTexValue = vec4(0.0);
   
   int parentNodeIndex = 0;
   vec3 gridOffset = vec3(0.0f);
-  SampleData_New sampleData;
+  SampleData sampleData;
   sampleData.accumTexValue = vec3(0.0f);
 
   //Sample on the root level
   sampleData = SampleGrid(sampleData, gridSpacePos, parentNodeIndex, 0);
   status.currentLevel = 0;
+  
+  //Sample all available levels with higher resolution at the same position
   for(int level = 0; level < MAX_LEVELS - 1; ++level)
   {
     const int childLevel = level + 1;
     //Use the grid space position to calculate the position of the child node
     const vec3 childNodePos = CalcGridNodePos(gridSpacePos, gridOffset, level);
-    const ivec2 bitIndexOffset = CalcBitIndex_New(childNodePos, parentNodeIndex, NODE_RESOLUTION);    
+    //Position inside the active bit array and index of the bit of the array element
+    const ivec2 bitIndexOffset = CalcBitIndex(childNodePos, parentNodeIndex);    
     
-    if(!BitActive_New(bitIndexOffset))
+    if(!BitActive(bitIndexOffset))
     {
+      //Stop traversal if at this position no active child node exists
       break;
     }
     
-    parentNodeIndex = GetChildNodeIndex_New(bitIndexOffset, childLevel, parentNodeIndex);
+    //Retrieve the child node index which will be the next parent node
+    parentNodeIndex = GetChildNodeIndex(bitIndexOffset, childLevel, parentNodeIndex);
+    //Store the world space offset of this node
     gridOffset = levelData_.data[level].childCellSize * vec3(childNodePos);
     sampleData = SampleGrid(sampleData, gridSpacePos, 
       parentNodeIndex, childLevel);
