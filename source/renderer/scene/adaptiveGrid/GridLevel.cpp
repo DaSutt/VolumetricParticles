@@ -131,7 +131,7 @@ namespace Renderer
 		return (pos.z * gridResolution_ + pos.y) * gridResolution_ + pos.x;
 	}
 
-	void GridLevel::Update()
+	int GridLevel::Update(const int parentChildOffset)
 	{
 		parentImageOffset_ = 0;
 		if (parentLevel_)
@@ -141,16 +141,18 @@ namespace Renderer
 		
 		imageOffset_ = nodeData_.GetNodeCount() + parentImageOffset_;
 		
+		int childOffset = parentChildOffset;
 		for (const auto& parentChildIndices : parentChildIndices_)
 		{
 			const int parentIndexNode = parentChildIndices.first;
 			const auto& childIndices = parentChildIndices.second;
 			
-			nodeData_.SetChildOffset(static_cast<int>(childNodeIndices_.size()), parentIndexNode);
+			nodeData_.SetChildOffset(childOffset, parentIndexNode);
 			for (const auto& childIndex : childIndices)
 			{
-				childNodeIndices_.push_back(childIndex.second);
+				childNodeIndices_.push_back(childIndex.second + parentChildOffset + 1);
 			}
+			childOffset += childIndices.size();
 
 			//Update mipmap data
 			if (!childIndices.empty())
@@ -159,6 +161,8 @@ namespace Renderer
 				imageOffset_++;
 			}
 		}
+
+		return childOffset;
 	}
 
 	void GridLevel::UpdateImageIndices(int atlasSideLength)

@@ -57,23 +57,23 @@ vec3 GetImageOffset_New(int nodeIndex, bool mipMapping)
 //    nodeInfos_.data[nodeIndex].imageOffsetMipMap : imageOffset;
   return UnpackImageOffset(imageOffset);
 }
-//
-////Calculates texture coordinate int [0,1] range for current node
-//vec3 CalcTexCoord(vec3 globalPos, int level) {
-//	float cellSize = levelData_.data[level].gridCellSize;
-//  vec3 fraction = (globalPos) / cellSize;
-//	return fraction - ivec3(fraction);
-//}
-//
+
+//Calculates texture coordinate int [0,1] range for current node
+vec3 CalcTexCoord_New(vec3 globalPos, int level) {
+	float cellSize = levelData_.data[level].gridCellSize;
+  return fract((globalPos) / cellSize);
+}
+
 
 //Calculates the texture coordinate inside of the image atlas for the current node
 vec3 AtlasTextureCoordinate_New(vec3 gridSpacePos, int nodeIndex, int level)
 {
   const vec3 imageOffset = GetImageOffset_New(nodeIndex, false);
-  //const vec3 texCoord = CalcTexCoord(gridSpacePos, level);
+  const vec3 texCoord = CalcTexCoord_New(gridSpacePos, level);
   //
   //return (texCoord * raymarchData_.textureFraction + raymarchData_.textureOffset) +
   //  imageOffset * raymarchData_.atlasTexelToNodeTexCoord;
+  return imageOffset/3.0f;
   return vec3(0.0,1.0,0.0);
 }
 //
@@ -165,24 +165,19 @@ GridStatus_New TraverseGrid(const vec3 gridSpacePos)
     const vec3 childNodePos = CalcGridNodePos(gridSpacePos, gridOffset, level);
     const ivec2 bitIndexOffset = CalcBitIndex_New(childNodePos, parentNodeIndex, NODE_RESOLUTION);    
     
-    //Stop the traversal if no active childs are found or max level is reached
-    if(childLevel == MAX_LEVELS - 1 || !BitActive_New(bitIndexOffset))
+    if(!BitActive_New(bitIndexOffset))
     {
-      if(childLevel == MAX_LEVELS - 1 && BitActive_New(bitIndexOffset))
-      {
-        status.currentLevel = childLevel;
-      }
       break;
     }
     
     parentNodeIndex = GetChildNodeIndex_New(bitIndexOffset, childLevel, parentNodeIndex);
     gridOffset = levelData_.data[level].childCellSize * vec3(childNodePos);
-//  //  sampleData = SampleGrid(sampleData, gridSpacePos, 
-//  //    parentNodeIndex, childLevel);
+    sampleData = SampleGrid(sampleData, gridSpacePos, 
+      parentNodeIndex, childLevel);
     status.currentLevel = childLevel;
   }
   
-  status.accumTexValue = vec4(sampleData.accumTexValue, 0.0f);
+  status.accumTexValue = vec4(0);//vec4(sampleData.accumTexValue, 0.0f);
   
   return status;
 }

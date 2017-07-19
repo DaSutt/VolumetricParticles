@@ -165,12 +165,13 @@ namespace Renderer
 		for (int parentNodeIndex = 0; parentNodeIndex < parentNodeCount; ++parentNodeIndex)
 		{
 			const int nodeCount = nodeDataParent.childCount_[parentNodeIndex];
+			const int nodeOffset = nodeInfosParent[0].childOffset + 1;
 			uint32_t childImageOffset = 0;
 
 			//For each child store the start in the image atlas without edge values
 			for (int i = childIndexOffset; i < nodeCount + childIndexOffset; ++i)
 			{
-				const int childNodeIndex = childNodeIndices[i];
+				const int childNodeIndex = childNodeIndices[i] - nodeOffset;
 				//On the leaf level the original textures are used for averaging
 				if (childLeafLevel)
 				{

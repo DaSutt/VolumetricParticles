@@ -53,7 +53,7 @@ namespace Renderer
 		std::uniform_real_distribution<float> posDistribution(-5.0f, 5.0f);
 		//std::uniform_real_distribution<float> posDistributionY(-20.0f, 0.0f);
 		
-		debugParticleCount_ = 1;
+		//debugParticleCount_ = 1;
 		
 		const int clusterCount = 1;
 		glm::vec3 clusterOffset = glm::vec3(-clusterCount * 10.0f, 0.0f, 0.0f);
@@ -79,7 +79,7 @@ namespace Renderer
 		}
 
 		//radi_.push_back(1.5f);	particles_.push_back({ glm::vec3(272, 270, 273), radi_.back() * radi_.back() });
-		//radi_.push_back(0.99f); particles_.push_back({ glm::vec3(259, 255, 271), radi_.back() * radi_.back() });
+		radi_.push_back(0.99f); particles_.push_back({ glm::vec3(259 - 3, 255, 270), radi_.back() * radi_.back() });
 		//radi_.push_back(0.5f);	particles_.push_back({ glm::vec3(272, 270, 281), radi_.back() * radi_.back() });
 		//radi_.push_back(0.25f);
 		//particles_.push_back({ glm::vec3(257, 273, 265), radi_.back() * radi_.back() });

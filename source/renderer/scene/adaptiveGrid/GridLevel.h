@@ -73,7 +73,9 @@ namespace Renderer
 		glm::vec3 CalcGridPos_Level(const glm::vec3& gridPos_World);
 		int CalcIndex_Grid(const glm::vec3& gridPos_Node);
 
-		void Update();
+		//Updates the offsets for the active child nodes
+		//Returns the overall offset into the child indices array
+		int Update(const int parentChildOffset);
 		void UpdateImageIndices(int atlasSideLength);
 		//Returns new offset after insertion
 		int CopyBufferData(void* dst, BufferType type, int offset);

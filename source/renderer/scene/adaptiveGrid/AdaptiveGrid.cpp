@@ -527,9 +527,10 @@ namespace Renderer
 		groundFog_.UpdateGridCells(&gridLevels_[1]);
 		particleSystems_.GridInsertParticles(raymarchingData_.gridMinPosition, &gridLevels_[2]);
 
+		int parentChildOffset = 0;
 		for (auto& level : gridLevels_)
 		{
-			level.Update();
+			parentChildOffset = level.Update(parentChildOffset);
 		}
 		imageAtlas_.UpdateSize(gridLevels_.back().GetImageOffset());
 		const int atlasSideLength = imageAtlas_.GetSideLength();

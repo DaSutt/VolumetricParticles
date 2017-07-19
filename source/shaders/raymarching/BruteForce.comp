@@ -58,9 +58,13 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     
     const vec3 currentGridPos = gridOrigin + direction * stepData.x;
     GridStatus_New status = TraverseGrid(currentGridPos);
-    if(status.currentLevel == 1)
+    if(status.currentLevel == 2)
     {
-      accumScatteringTransmittance = vec4(1,0,0,0);
+      accumScatteringTransmittance = status.accumTexValue;
+      if(status.accumTexValue.x < 0.0f || status.accumTexValue.x > 1.0f)
+      {
+        accumScatteringTransmittance = vec4(1,0,0,1);
+      }
       return accumScatteringTransmittance;
     }
         
