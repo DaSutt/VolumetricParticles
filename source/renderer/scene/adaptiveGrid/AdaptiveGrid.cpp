@@ -498,7 +498,7 @@ namespace Renderer
 
 		{
 			const float nodeResolutionWithBorder = static_cast<float>(GridConstants::nodeResolution + 2);
-			raymarchingData_.textureFraction = GridConstants::nodeResolution / nodeResolutionWithBorder / raymarchingData_.atlasSideLength;
+			raymarchingData_.atlasSideLength_Reciprocal = 1.0f / raymarchingData_.atlasSideLength;
 			raymarchingData_.textureOffset = 1.0f / nodeResolutionWithBorder / raymarchingData_.atlasSideLength;
 			raymarchingData_.atlasTexelToNodeTexCoord = 1.0f / GridConstants::imageResolution / 
 				static_cast<float>(raymarchingData_.atlasSideLength);

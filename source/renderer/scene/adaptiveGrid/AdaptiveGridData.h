@@ -51,7 +51,7 @@ namespace Renderer
 		float textureOffset;
 		
 		glm::vec3 lightDirection;
-		float textureFraction;
+		float atlasSideLength_Reciprocal;
 		
 		glm::vec2 screenSize;
 		float nearPlane;

@@ -90,7 +90,7 @@ layout(set = 0, binding = 9) uniform perFrameData {
 	float textureOffset;
 		
 	vec3 lightDirection;
-	float textureFraction;
+	float atlasSideLength_Reciprocal;  
 		
 	vec2 screenSize;
   float nearPlane;

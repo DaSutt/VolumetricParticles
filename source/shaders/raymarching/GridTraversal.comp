@@ -69,9 +69,7 @@ vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const 
   const vec3 imageOffset = GetImageOffset(nodeIndex, false);
   const vec3 texCoord = CalcTexCoord(gridSpacePos, level);
   
-  //return (texCoord * raymarchData_.textureFraction + raymarchData_.textureOffset) +
-  //  imageOffset * raymarchData_.atlasTexelToNodeTexCoord;
-  return imageOffset;
+  return (texCoord + imageOffset) * raymarchData_.atlasSideLength_Reciprocal;
 }
 //
 ////Combine the already accumulated texture values of multiple levels with
@@ -99,8 +97,8 @@ ivec2 CalcBitIndex(const vec3 gridPos, const int parentNodeIndex) {
 
 //Sample the grid at the position for a certain level
 //Accumulates this value with the already sampled data
-SampleData SampleGrid(SampleData sampleData, const vec3 gridSpacePos, 
-  const int nodeIndex, const int level)
+SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos, 
+  int nodeIndex, int level)
 {
   const vec3 texCoord = AtlasTextureCoordinate(gridSpacePos, nodeIndex, level);
 //  const vec4 texValue = texture(textureAtlas_, texCoord);
@@ -180,13 +178,11 @@ GridStatus TraverseGrid(const vec3 gridSpacePos)
     parentNodeIndex = GetChildNodeIndex(bitIndexOffset, childLevel, parentNodeIndex);
     //Store the world space offset of this node
     gridOffset = levelData_.data[level].childCellSize * vec3(childNodePos);
-    sampleData = SampleGrid(sampleData, gridSpacePos, 
-      parentNodeIndex, childLevel);
+    sampleData = SampleGrid(sampleData, gridSpacePos, parentNodeIndex, childLevel);
     status.currentLevel = childLevel;
   }
   
-  status.accumTexValue = vec4(0);//vec4(sampleData.accumTexValue, 0.0f);
-  
+  status.accumTexValue = vec4(sampleData.accumTexValue, 0.0f);
   return status;
 }
 

@@ -152,7 +152,7 @@ namespace Renderer
 			{
 				childNodeIndices_.push_back(childIndex.second + parentChildOffset + 1);
 			}
-			childOffset += childIndices.size();
+			childOffset += static_cast<int>(childIndices.size());
 
 			//Update mipmap data
 			if (!childIndices.empty())
