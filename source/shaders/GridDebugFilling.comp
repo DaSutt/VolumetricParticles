@@ -24,6 +24,40 @@ SOFTWARE.
 
 #version 450
 
+#ifndef GRID_DEBUG_FILLING_H
+#define GRID_DEBUG_FILLING_H
+
+#include "GridConstants.comp"
+#include "ImageOffset.comp"
+
+layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
+layout(set = 0, binding = 1) uniform cbData
+{
+  //TODO remove this
+  ivec2 unused;
+  int atlasSideLength;
+}cb_;
+
+//Fill all texels of the texture atlas with debug values
+layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
+void main()
+{
+  //Fill each texel based on the image offset of the node
+  const int imageIndex = int(gl_WorkGroupID.x);
+  const ivec3 imageOffset = CalcImageOffset_I(imageIndex, cb_.atlasSideLength);
+  const vec4 imageColor = vec4(imageOffset, 0.0) / float(cb_.atlasSideLength);
+  const ivec3 texelOffset = imageOffset * IMAGE_RESOLUTION;
+  
+  for(int z = 0; z < IMAGE_RESOLUTION; ++z)
+  {
+    const ivec3 position = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
+    const ivec3 texelCoord = position + texelOffset;
+      
+    imageStore(imageAtlas_, texelCoord, imageColor);
+  }
+}
+
+/*
 const int IMAGE_RESOLUTION = 17;
 
 const bool FILL_NODE_PARTIAL = false;
@@ -129,4 +163,6 @@ void main()
       }
     }
   }
-}
+}*/
+
+#endif

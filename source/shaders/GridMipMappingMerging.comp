@@ -85,6 +85,6 @@ void main()
       cb_.atlasTexelToTexCoord); 
     //mipMapValue = vec4(0.0f, 5.0f, 0.0f, 0.0f);
               
-    imageStore(imageAtlas_, mipMapTexel, mipMapValue);
+    //imageStore(imageAtlas_, mipMapTexel, mipMapValue);
   }
 }

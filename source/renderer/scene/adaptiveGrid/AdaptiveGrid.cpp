@@ -502,6 +502,10 @@ namespace Renderer
 			raymarchingData_.textureOffset = 1.0f / nodeResolutionWithBorder / raymarchingData_.atlasSideLength;
 			raymarchingData_.atlasTexelToNodeTexCoord = 1.0f / GridConstants::imageResolution / 
 				static_cast<float>(raymarchingData_.atlasSideLength);
+
+			const float relTexelSize = 1.0f / GridConstants::imageResolution / static_cast<float>(raymarchingData_.atlasSideLength);
+			raymarchingData_.texelHalfSize = relTexelSize * 0.5f;
+			raymarchingData_.nodeTexelSize = raymarchingData_.atlasSideLength_Reciprocal - relTexelSize;
 		}
     
 		particleSystems_.UpdateCBData(&gridLevels_[2]);

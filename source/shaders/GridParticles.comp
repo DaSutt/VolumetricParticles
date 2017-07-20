@@ -128,7 +128,7 @@ void main()
       const ivec3 texelCoord = UnpackImageOffset(currNode.imageOffset) + index; 
       //if(index.x == 16 || index.x == 0)
       {
-        imageStore(imageAtlas_, texelCoord, texValue);
+        //imageStore(imageAtlas_, texelCoord, texValue);
       }
     }
   }

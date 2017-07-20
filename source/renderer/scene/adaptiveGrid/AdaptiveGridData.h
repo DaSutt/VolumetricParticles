@@ -61,10 +61,11 @@ namespace Renderer
 		float atlasTexelToNodeTexCoord;
 		float maxDepth;
 		int maxSteps;
-		
+
+		float texelHalfSize;
+		float nodeTexelSize;
 		int atlasSideLength;
 		int maxLevel;
-		glm::ivec2 padding;
 	};
 
 	struct LevelData

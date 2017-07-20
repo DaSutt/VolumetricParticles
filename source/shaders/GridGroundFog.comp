@@ -108,11 +108,11 @@ void main()
     
     vec4 currValue = density * fogValue;
     currValue = edgeValue ? currValue * cb_.cellFraction : currValue;
-    imageStore(imageAtlas_, texelPosition, currValue);
+    //imageStore(imageAtlas_, texelPosition, currValue);
     
     //if(offset.x > 5)
     //{
-      imageStore(imageAtlas_, texelPosition, vec4(1.0, 0.0, 0.0, 0.0));
+      //imageStore(imageAtlas_, texelPosition, vec4(1.0, 0.0, 0.0, 0.0));
     //}
     //else
     //{

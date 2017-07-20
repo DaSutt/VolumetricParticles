@@ -101,9 +101,10 @@ layout(set = 0, binding = 9) uniform perFrameData {
 	float maxDepth;
 	int maxSteps;
 		
+	float texelHalfSize;
+	float nodeTexelSize;
 	int atlasSideLength;
 	int maxLevel;
-	ivec2 padding;
 } raymarchData_;
 
 layout(set = 0, binding = 10) buffer perLevelData {

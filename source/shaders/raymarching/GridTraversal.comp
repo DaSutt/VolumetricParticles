@@ -58,18 +58,18 @@ vec3 GetImageOffset(const int nodeIndex, const bool mipMapping)
   return UnpackImageOffset(imageOffset);
 }
 
-//Calculates texture coordinate int [0,1] range for current node
-vec3 CalcTexCoord(const vec3 globalPos, const int level) {
-  return fract((globalPos) / levelData_.data[level].gridCellSize);
-}
-
 //Calculates the texture coordinate inside of the image atlas for the current node
 vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const int level)
 {
-  const vec3 imageOffset = GetImageOffset(nodeIndex, false);
-  const vec3 texCoord = CalcTexCoord(gridSpacePos, level);
+  //Position of the node in the range [0,1]
+  const vec3 nodeSpacePos = fract(gridSpacePos / levelData_.data[level].gridCellSize);
+  //Texture coordinate of the node within the range [halfTexel, halfTexel + nodeTexelSize]
+  //The half size is added to have correct interpolation inside the texture atlas
+  const vec3 texCoord = nodeSpacePos * raymarchData_.nodeTexelSize + 
+    raymarchData_.texelHalfSize;  
   
-  return (texCoord + imageOffset) * raymarchData_.atlasSideLength_Reciprocal;
+  const vec3 imageOffset = GetImageOffset(nodeIndex, false);
+  return texCoord + imageOffset * raymarchData_.atlasSideLength_Reciprocal;
 }
 //
 ////Combine the already accumulated texture values of multiple levels with
@@ -101,12 +101,13 @@ SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos,
   int nodeIndex, int level)
 {
   const vec3 texCoord = AtlasTextureCoordinate(gridSpacePos, nodeIndex, level);
-//  const vec4 texValue = texture(textureAtlas_, texCoord);
+  const vec4 texValue = texture(textureAtlas_, texCoord);
 //  
 //  sampleData.accumTexValue = Accumulate(sampleData.accumTexValue, texValue);
 //  sampleData.phaseCount = texValue.x > 0.0f ? sampleData.phaseCount + 1 : sampleData.phaseCount;
 	
-  sampleData.accumTexValue = texCoord;
+  sampleData.accumTexValue = vec3(texValue);
+  //sampleData.accumTexValue = texCoord;
   return sampleData;
 }
 

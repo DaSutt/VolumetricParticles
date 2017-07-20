@@ -130,15 +130,15 @@ void main()
   
   vec4 color = vec4(1,0,0,0);
   //Copy the inner values to the edge cells
-  imageStore(scatteringExtinctionGrid, 
-    currOffsets.data[OFFSET_FIRST_EDGE], currValues[OFFSET_SECOND_EDGE]);
-  imageStore(scatteringExtinctionGrid,
-    currOffsets.data[OFFSET_SECOND_EDGE], currValues[OFFSET_FIRST_EDGE]);
-    
-  const vec4 averagedValue = (currValues[OFFSET_FIRST_EDGE] + currValues[OFFSET_SECOND_EDGE])
-    * 0.5f;
-  imageStore(scatteringExtinctionGrid,
-    currOffsets.data[OFFSET_FIRST_INNER], averagedValue);
-  imageStore(scatteringExtinctionGrid,
-    currOffsets.data[OFFSET_SECOND_INNER], averagedValue);
+  //imageStore(scatteringExtinctionGrid, 
+  //  currOffsets.data[OFFSET_FIRST_EDGE], currValues[OFFSET_SECOND_EDGE]);
+  //imageStore(scatteringExtinctionGrid,
+  //  currOffsets.data[OFFSET_SECOND_EDGE], currValues[OFFSET_FIRST_EDGE]);
+  //  
+  //const vec4 averagedValue = (currValues[OFFSET_FIRST_EDGE] + currValues[OFFSET_SECOND_EDGE])
+  //  * 0.5f;
+  //imageStore(scatteringExtinctionGrid,
+  //  currOffsets.data[OFFSET_FIRST_INNER], averagedValue);
+  //imageStore(scatteringExtinctionGrid,
+  //  currOffsets.data[OFFSET_SECOND_INNER], averagedValue);
 }

@@ -61,6 +61,12 @@ Ray CreateRay(vec3 start, vec3 end) {
 	return ray;
 }
 
+//Directly load the textureAtlas_ values for debugging
+vec4 LoadImage(ivec2 imagePos)
+{
+  return texelFetch(textureAtlas_, ivec3(imagePos / 10, 17), 0);
+}
+
 void Raymarching(uvec3 invocationID)
 {
   const ivec2 imagePos = ivec2(invocationID);
@@ -84,6 +90,8 @@ void Raymarching(uvec3 invocationID)
   
   const vec4 raymarchingResult = Raymarching_BruteForce(gridOrigin, worldRay.direction,
     worldRay.maxLength);
+    
+  //const vec4 imageData = LoadImage(imagePos);
     
   imageStore(raymarchingResults_, imagePos, raymarchingResult);
 }

@@ -84,7 +84,7 @@ void main()
 			for(int z = texOffset.z; z < texOffset.z + 16; ++z)
 			{
 				vec4 currValue = imageLoad(scatteringExtinctionGrid_, ivec3(x,y,z));
-				imageStore(scatteringExtinctionGrid_, ivec3(x,y,z), data + currValue);
+				//imageStore(scatteringExtinctionGrid_, ivec3(x,y,z), data + currValue);
 			}
 		}
 	}

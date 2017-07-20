@@ -46,4 +46,13 @@ vec3 UnpackImageOffset(uint imageOffset)
     (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
 }
 
+ivec3 CalcImageOffset_I(int imageIndex, int atlasResolution)
+{
+  return ivec3(
+    imageIndex % atlasResolution,
+    (imageIndex / atlasResolution) % atlasResolution,
+    imageIndex / (atlasResolution * atlasResolution)
+  );
+}
+
 #endif

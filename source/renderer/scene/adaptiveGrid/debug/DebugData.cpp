@@ -33,5 +33,24 @@ namespace DebugData
 	BitCountsContainer bitCounts_;
 	ChildIndexContainer childIndices_;
 
+	int textureAtlas_;
+
 	glm::vec4 raymarchingResults_;
+
+	glm::vec4 texture(int imageIndex, const glm::vec3& texCoord)
+	{
+		printf("WARNING: debug texture sampling not implemented yet\n");
+		return glm::vec4(0);
+	}
+
+	glm::vec4 texelFetch(int imageIndex, const glm::vec3& texelCoordinate, int lod)
+	{
+		printf("WARNING: debug texture fetch not implemented yet\n");
+		return glm::vec4(0);
+	}
+
+	glm::vec3 clamp(const glm::vec3& value, float min, float max)
+	{
+		return glm::clamp(value, glm::vec3(min), glm::vec3(max));
+	}
 }

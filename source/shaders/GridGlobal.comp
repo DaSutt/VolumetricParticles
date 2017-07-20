@@ -45,6 +45,6 @@ void main()
     const ivec3 texel = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
     
     const vec4 value = y > perFrame_.groundFogTexelStart ? groundFogValue : globalValue;
-    imageStore(imageAtlas_, texel, value);
+    //imageStore(imageAtlas_, texel, value);
   }
 }

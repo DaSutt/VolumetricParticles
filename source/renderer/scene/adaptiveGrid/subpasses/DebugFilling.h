@@ -37,7 +37,7 @@ namespace Renderer
 
 	//Used to fill the texture atlas with debug data
 		//All images are filled inside with color value based on 
-			//the image offset inside the atlas [0, atlasSideLength]
+			//the image offset inside the atlas [0, 1]
 		//Individual debug nodes with a specific value, fills the whole node image
 	class DebugFilling
 	{

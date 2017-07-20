@@ -56,18 +56,21 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     
     stepData.x = min(stepData.x, maxDepth);
     
-    const vec3 currentGridPos = gridOrigin + direction * stepData.x;
+    const vec3 currentGridPos = clamp(gridOrigin + direction * stepData.x, 0.00001, 511.9999);
     GridStatus status = TraverseGrid(currentGridPos);
     if(status.currentLevel == 2)
     {
-      accumScatteringTransmittance = status.accumTexValue;
-      return accumScatteringTransmittance;
+      if(status.accumTexValue != vec4(0))
+      {
+        accumScatteringTransmittance = status.accumTexValue;
+      }  
+      //return accumScatteringTransmittance;
     }
         
     //Check for early termination through geometry
     if(stepData.x >= maxDepth)
     {
-      accumScatteringTransmittance = status.accumTexValue;
+      //accumScatteringTransmittance = status.accumTexValue;
       //accumScatteringTransmittance.x = stepCount / float(raymarchData_.maxSteps);
       return accumScatteringTransmittance;
     }

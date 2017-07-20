@@ -125,6 +125,6 @@ void main()
   {
     vec4 finalValue = sharedMemory[0] / float(TOTAL_THREADS);
     const ivec3 parentTexel = UnpackImageOffset(mipMapInfo.parentTexel);
-    imageStore(mipMapAtlas_, parentTexel, finalValue);
+    //imageStore(mipMapAtlas_, parentTexel, finalValue);
   }
 }

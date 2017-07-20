@@ -63,5 +63,11 @@ namespace DebugData
 	extern BitCountsContainer bitCounts_;
 	extern ChildIndexContainer childIndices_;
 
+	extern int textureAtlas_;
+
 	extern glm::vec4 raymarchingResults_;
+
+	glm::vec4 texture(int imageIndex, const glm::vec3& texCoord);
+	glm::vec4 texelFetch(int imageIndex, const glm::vec3& texelCoordinate, int lod);
+	glm::vec3 clamp(const glm::vec3& value, float min, float max);
 }

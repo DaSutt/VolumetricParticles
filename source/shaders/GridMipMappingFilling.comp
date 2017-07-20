@@ -65,5 +65,5 @@ void main()
   index += perLevel_.offset;
   
   const ivec3 startTexel = ivec3(parentTexels_.data[index].xyz) + 1;   
-  imageStore(imageAtlas_, startTexel, averageValues_.data[index]);
+  //imageStore(imageAtlas_, startTexel, averageValues_.data[index]);
 }
