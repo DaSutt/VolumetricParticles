@@ -47,6 +47,7 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
   
   //Next depth, step length
   vec2 stepData = vec2(globalIntersection.x, 0.0f);
+  int maxLevel = 0;
   while(stepCount < raymarchData_.maxSteps && stepData.x < globalIntersection.y)
   {
     //Advance to next step
@@ -58,13 +59,18 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     
     const vec3 currentGridPos = clamp(gridOrigin + direction * stepData.x, 0.00001, 511.9999);
     GridStatus status = TraverseGrid(currentGridPos);
-    if(status.currentLevel == 2)
+    //if(status.currentLevel == 2)
+    //{
+    //  if(status.accumTexValue != vec4(0))
+    //  {
+    //    accumScatteringTransmittance = status.accumTexValue;
+    //  }  
+    //  //return accumScatteringTransmittance;
+    //}
+    if(status.currentLevel > maxLevel)
     {
-      if(status.accumTexValue != vec4(0))
-      {
-        accumScatteringTransmittance = status.accumTexValue;
-      }  
-      //return accumScatteringTransmittance;
+      maxLevel = status.currentLevel;
+      accumScatteringTransmittance = status.accumTexValue;
     }
         
     //Check for early termination through geometry

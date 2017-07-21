@@ -162,48 +162,48 @@ namespace Renderer
 
 		const auto imageOffset = NodeData::PackTextureOffset({ 1,1,1 });
 		//go through all parent nodes and collect all child nodes that contribute to mip mapping
-		for (int parentNodeIndex = 0; parentNodeIndex < parentNodeCount; ++parentNodeIndex)
-		{
-			const int nodeCount = nodeDataParent.childCount_[parentNodeIndex];
-			const int nodeOffset = nodeInfosParent[0].childOffset + 1;
-			uint32_t childImageOffset = 0;
-
-			//For each child store the start in the image atlas without edge values
-			for (int i = childIndexOffset; i < nodeCount + childIndexOffset; ++i)
-			{
-				const int childNodeIndex = childNodeIndices[i] - nodeOffset;
-				//On the leaf level the original textures are used for averaging
-				if (childLeafLevel)
-				{
-					childImageOffset = nodeInfoChilds[childNodeIndex].textureOffset;
-				}
-				//On coarser levels use the mip map values to accord for the more detailed levels as well
-				else
-				{
-					childImageOffset = nodeInfoChilds[childNodeIndex].textureOffsetMipMap;
-				}
-				childImageOffset += imageOffset;
-				const auto parentTexelOffset = NodeData::PackTextureOffset( nodeDataChild.gridPos_[childNodeIndex] ) 
-					+ imageOffset;
-
-				mipMapData_.push_back({ childImageOffset, parentTexelOffset });
-				mipMapOffsets_.push_back(mipMapCount_);
-			}
-
-			//Skip parent nodes without any children
-			if (nodeCount > 0)
-			{
-				childIndexOffset += nodeCount;
-				
-				NodeImageOffsets offsets;
-				offsets.imageOffset = nodeInfosParent[parentNodeIndex].textureOffset;
-				offsets.mipMapImageOffset = nodeInfosParent[parentNodeIndex].textureOffsetMipMap;
-				offsets.mipMapSourceOffset = static_cast<uint32_t>(imageOffsets_.size());
-				imageOffsets_.push_back(offsets);
-				
-				mipMapCount_++;
-			}
-		}
+		//for (int parentNodeIndex = 0; parentNodeIndex < parentNodeCount; ++parentNodeIndex)
+		//{
+		//	const int nodeCount = nodeDataParent.childCount_[parentNodeIndex];
+		//	const int nodeOffset = nodeInfosParent[0].childOffset + 1;
+		//	uint32_t childImageOffset = 0;
+		//
+		//	//For each child store the start in the image atlas without edge values
+		//	for (int i = childIndexOffset; i < nodeCount + childIndexOffset; ++i)
+		//	{
+		//		const int childNodeIndex = childNodeIndices[i] - nodeOffset;
+		//		//On the leaf level the original textures are used for averaging
+		//		if (childLeafLevel)
+		//		{
+		//			childImageOffset = nodeInfoChilds[childNodeIndex].textureOffset;
+		//		}
+		//		//On coarser levels use the mip map values to accord for the more detailed levels as well
+		//		else
+		//		{
+		//			childImageOffset = nodeInfoChilds[childNodeIndex].textureOffsetMipMap;
+		//		}
+		//		childImageOffset += imageOffset;
+		//		const auto parentTexelOffset = NodeData::PackTextureOffset( nodeDataChild.gridPos_[childNodeIndex] ) 
+		//			+ imageOffset;
+		//
+		//		mipMapData_.push_back({ childImageOffset, parentTexelOffset });
+		//		mipMapOffsets_.push_back(mipMapCount_);
+		//	}
+		//
+		//	//Skip parent nodes without any children
+		//	if (nodeCount > 0)
+		//	{
+		//		childIndexOffset += nodeCount;
+		//		
+		//		NodeImageOffsets offsets;
+		//		offsets.imageOffset = nodeInfosParent[parentNodeIndex].textureOffset;
+		//		offsets.mipMapImageOffset = nodeInfosParent[parentNodeIndex].textureOffsetMipMap;
+		//		offsets.mipMapSourceOffset = static_cast<uint32_t>(imageOffsets_.size());
+		//		imageOffsets_.push_back(offsets);
+		//		
+		//		mipMapCount_++;
+		//	}
+		//}
 
 		levelData.childImageCount = static_cast<uint32_t>(mipMapData_.size() - levelData.averagingOffset);
 		levelData.mipMapCount = static_cast<uint32_t>(imageOffsets_.size() - levelData.mergingOffset);
@@ -278,10 +278,10 @@ namespace Renderer
 	void MipMapping::Dispatch(ImageManager* imageManager, BufferManager* bufferManager, VkCommandBuffer commandBuffer, int frameIndex, int level, int pass)
 	{
 		//Skip empty levels
-		if (levelData_[level].childImageCount <= 0)
-		{
-			return;
-		}
+		//if (levelData_[level].childImageCount <= 0)
+		//{
+		//	return;
+		//}
 
 		Wrapper::TimeStamps timeStampMipMapping;
 		Wrapper::TimeStamps timeStampMipMappingMerging;
@@ -301,28 +301,28 @@ namespace Renderer
 		{
 		case MIPMAP_AVERAGING:
 		{
-			auto& queryPool = Wrapper::QueryPool::GetInstance();
-			queryPool.TimestampStart(commandBuffer, timeStampMipMapping, frameIndex);
-			
-			vkCmdPushConstants(commandBuffer, bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING),
-				VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(int), &levelData_[level].averagingOffset);
-			vkCmdDispatch(commandBuffer, levelData_[level].childImageCount, 1, 1);
-
-			queryPool.TimestampEnd(commandBuffer, timeStampMipMapping, frameIndex);
+			//auto& queryPool = Wrapper::QueryPool::GetInstance();
+			//queryPool.TimestampStart(commandBuffer, timeStampMipMapping, frameIndex);
+			//
+			//vkCmdPushConstants(commandBuffer, bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING),
+			//	VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(int), &levelData_[level].averagingOffset);
+			//vkCmdDispatch(commandBuffer, levelData_[level].childImageCount, 1, 1);
+			//
+			//queryPool.TimestampEnd(commandBuffer, timeStampMipMapping, frameIndex);
 
 			AddBarriers(imageManager, commandBuffer, frameIndex);
 		}
 		break;
 		case MIPMAP_MERGING:
 		{
-			auto& queryPool = Wrapper::QueryPool::GetInstance();
-			queryPool.TimestampStart(commandBuffer, timeStampMipMappingMerging, frameIndex);
-
-			vkCmdPushConstants(commandBuffer, bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING_MERGING),
-				VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(int), &levelData_[level].mergingOffset);
-			vkCmdDispatch(commandBuffer, levelData_[level].mipMapCount, 1, 1);
-
-			queryPool.TimestampEnd(commandBuffer, timeStampMipMappingMerging, frameIndex);
+			//auto& queryPool = Wrapper::QueryPool::GetInstance();
+			//queryPool.TimestampStart(commandBuffer, timeStampMipMappingMerging, frameIndex);
+			//
+			//vkCmdPushConstants(commandBuffer, bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_MIPMAPPING_MERGING),
+			//	VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(int), &levelData_[level].mergingOffset);
+			//vkCmdDispatch(commandBuffer, levelData_[level].mipMapCount, 1, 1);
+			//
+			//queryPool.TimestampEnd(commandBuffer, timeStampMipMappingMerging, frameIndex);
 
 			const bool firstLevel = level == levelData_.size() - 1;
 			AddMergingBarrier(imageManager, commandBuffer, frameIndex, !firstLevel);

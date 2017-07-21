@@ -271,35 +271,35 @@ namespace Renderer
 		if (!mipMapping)
 		{
 			uint32_t dispatchSize = static_cast<uint32_t>(neighborInfos_.size());
-			if (dispatchSize > 0)
+			//if (dispatchSize > 0)
 			{
-				auto& queryPool = Wrapper::QueryPool::GetInstance();
-				queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_NEIGHBOR_UPDATE, frameIndex);
-
-				PushConstantData levelPushConstantData = { 0 };
-				vkCmdPushConstants(commandBuffer,
-					bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_NEIGHBOR_UPDATE),
-					VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData),
-					&levelPushConstantData);
-
-				vkCmdDispatch(commandBuffer, dispatchSize, 1, 1);
+				//auto& queryPool = Wrapper::QueryPool::GetInstance();
+				//queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_NEIGHBOR_UPDATE, frameIndex);
+				//
+				//PushConstantData levelPushConstantData = { 0 };
+				//vkCmdPushConstants(commandBuffer,
+				//	bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_NEIGHBOR_UPDATE),
+				//	VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData),
+				//	&levelPushConstantData);
+				//
+				//vkCmdDispatch(commandBuffer, dispatchSize, 1, 1);
 				AddImageBarrier(commandBuffer, imageManager);
 
-				queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_NEIGHBOR_UPDATE, frameIndex);
+				//queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_NEIGHBOR_UPDATE, frameIndex);
 			}
 		}
 		else
 		{
 			uint32_t dispatchSize = static_cast<uint32_t>(mipMapNeighborInfos_.size());
-			if (dispatchSize > 0)
+			//if (dispatchSize > 0)
 			{
-				PushConstantData levelPushConstantData = { static_cast<int>(neighborInfos_.size()) };
-				vkCmdPushConstants(commandBuffer,
-					bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_NEIGHBOR_UPDATE),
-					VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData),
-					&levelPushConstantData);
-
-				vkCmdDispatch(commandBuffer, dispatchSize, 1, 1);
+				//PushConstantData levelPushConstantData = { static_cast<int>(neighborInfos_.size()) };
+				//vkCmdPushConstants(commandBuffer,
+				//	bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_NEIGHBOR_UPDATE),
+				//	VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData),
+				//	&levelPushConstantData);
+				//
+				//vkCmdDispatch(commandBuffer, dispatchSize, 1, 1);
 				AddImageBarrier(commandBuffer, imageManager);
 			}
 		}
