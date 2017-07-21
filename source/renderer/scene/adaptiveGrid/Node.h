@@ -74,6 +74,7 @@ namespace Renderer
 		int GetNodeInfoSize() const { return static_cast<int>(nodeInfos_.size() * sizeof(NodeInfo)); }
 		
 		static uint32_t PackTextureOffset(const glm::ivec3& textureOffset);
+		static bool MipMapSet(const uint32_t imageOffset);
   private:
 		void SetMipMapBit(uint32_t& textureOffset);
     

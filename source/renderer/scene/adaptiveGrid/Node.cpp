@@ -140,6 +140,11 @@ namespace Renderer
 		return packedOffset;
 	}
 
+	bool NodeData::MipMapSet(const uint32_t imageOffset)
+	{
+		return imageOffset & (1 << 1);
+	}
+
 	void NodeData::SetMipMapBit(uint32_t& textureOffset)
 	{
 		textureOffset |= 1;

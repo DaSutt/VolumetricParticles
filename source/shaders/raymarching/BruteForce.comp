@@ -47,7 +47,7 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
   
   //Next depth, step length
   vec2 stepData = vec2(globalIntersection.x, 0.0f);
-  int maxLevel = 0;
+  int maxLevel = -1;
   while(stepCount < raymarchData_.maxSteps && stepData.x < globalIntersection.y)
   {
     //Advance to next step

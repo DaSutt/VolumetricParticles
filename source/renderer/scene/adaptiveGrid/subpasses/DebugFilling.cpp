@@ -39,6 +39,18 @@ SOFTWARE.
 
 namespace Renderer
 {
+	std::array<glm::vec4, 3> levelColors = {
+		glm::vec4(0,0,1,0),
+		glm::vec4(0,1,0,0),
+		glm::vec4(1,0,0,0)
+	};
+
+	std::array<glm::vec4, 3> mipMapColors = {
+		glm::vec4(0,1,1,0),
+		glm::vec4(1,1,0,0),
+		glm::vec4(1,0,1,0)
+	};
+
 	void DebugFilling::SetGpuResources(int atlasImageIndex, int atlasBufferIndex)
 	{
 		atlasImageIndex_ = atlasImageIndex;
@@ -70,87 +82,74 @@ namespace Renderer
 		return bindingManager->RequestShaderBinding(bindingInfo);
 	}
 
-	void DebugFilling::SetWorldOffset(const glm::vec3& worldOffset)
-	{
-		worldOffset_ = worldOffset;
-	}
-
-	void DebugFilling::AddDebugNode(const glm::vec3 worldPosition,
-		float scattering, float absorption, float phaseG, int gridLevel)
-	{
-		DebugNode debugNode;
-		debugNode.pushData.scattering = scattering;
-		debugNode.pushData.extinction = absorption + scattering;
-		debugNode.pushData.phaseG = phaseG;
-		debugNode.pushData.activeNode = 1;
-
-		debugNode.gridLevel = gridLevel;
-		debugNode.gridPosition = worldPosition - worldOffset_;
-		debugNodes_.push_back(debugNode);
-	}
-	
 	void DebugFilling::SetImageCount(GridLevel* mostDetailedLevel)
 	{
 		dispatchCount_ = mostDetailedLevel->GetMaxImageOffset();
 	}
 
-	void DebugFilling::InsertDebugNodes(std::vector<GridLevel>& gridLevels)
+	void DebugFilling::AddDebugNodes(std::vector<GridLevel>& gridLevels)
 	{
-		for (auto& debugNode : debugNodes_)
+		if (GuiPass::GetVolumeState().debugFilling_levelIndex)
 		{
-			debugNode.indexNode = gridLevels[debugNode.gridLevel].AddNode(
-				debugNode.gridPosition
-			);
-		}
-	}
-
-	void DebugFilling::UpdateDebugNodes(std::vector<GridLevel>& gridLevels)
-	{
-		for (auto& debugNode : debugNodes_)
-		{
-			const auto& nodeData = gridLevels[debugNode.gridLevel].GetNodeData();
-			debugNode.pushData.imageOffset = 
-				nodeData.imageInfos_[debugNode.indexNode].image + glm::ivec3(1);
+			debugNodes_.clear();
+			for (size_t i = 0; i < gridLevels.size(); ++i)
+			{
+				const auto& nodeInfos = gridLevels[i].GetNodeData().GetNodeInfos();
+				for (const auto& node : nodeInfos)
+				{
+					debugNodes_.push_back(
+						{ levelColors[i], node.textureOffset, LEVEL_INDEX}
+					);
+					if (NodeData::MipMapSet(node.textureOffset))
+					{
+						assert(node.textureOffsetMipMap != 0 && i < gridLevels.size() - 1);
+						debugNodes_.push_back(
+							{ mipMapColors[i], node.textureOffsetMipMap, LEVEL_INDEX }
+						);
+					}
+				}
+			}
 		}
 	}
 
 	void DebugFilling::Dispatch(ImageManager* imageManager, VkCommandBuffer commandBuffer)
 	{
-		bool dispatch = false;
+		if (dispatchCount_ <= 0)
+		{
+			return;
+		}
+
 		VkPipelineLayout pipelineLayout = bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_DEBUG_FILLING);
 
-		if (dispatchCount_ > 0 && GuiPass::GetVolumeState().debugFilling)
+		if (GuiPass::GetVolumeState().debugFilling_imageIndex)
 		{
 			PushConstantData pushData;
-			pushData.activeNode = 0;
+			pushData.nodeType = IMAGE_INDEX;
 			vkCmdPushConstants(commandBuffer, pipelineLayout,
 				VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData), &pushData);
 
 			vkCmdDispatch(commandBuffer, dispatchCount_, 1, 1);
-			dispatch = true;
 		}
-
-		for (const auto& debugNode : debugNodes_)
+		else if (GuiPass::GetVolumeState().debugFilling_levelIndex)
 		{
-			vkCmdPushConstants(commandBuffer, pipelineLayout,
-				VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData), &debugNode.pushData);
-			vkCmdDispatch(commandBuffer, 1, 1, 1);
+			for (const auto& debugNode : debugNodes_)
+			{
+				vkCmdPushConstants(commandBuffer, pipelineLayout,
+					VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(PushConstantData), &debugNode);
 
-			dispatch = true;
+				vkCmdDispatch(commandBuffer, 1, 1, 1);
+			}
 		}
+		
+		ImageManager::BarrierInfo barrierInfo{};
+		barrierInfo.imageIndex = atlasImageIndex_;
+		barrierInfo.type = ImageManager::BARRIER_WRITE_WRITE;
+		auto barriers = imageManager->Barrier({ barrierInfo });
 
-		if (dispatch)
-		{
-			ImageManager::BarrierInfo barrierInfo{};
-			barrierInfo.imageIndex = atlasImageIndex_;
-			barrierInfo.type = ImageManager::BARRIER_WRITE_WRITE;
-			auto barriers = imageManager->Barrier({ barrierInfo });
-
-			Wrapper::PipelineBarrierInfo pipelineBarrierInfo{};
-			pipelineBarrierInfo.src = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-			pipelineBarrierInfo.dst = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-			pipelineBarrierInfo.AddImageBarriers(barriers);
-			Wrapper::AddPipelineBarrier(commandBuffer, pipelineBarrierInfo);
-		}
+		Wrapper::PipelineBarrierInfo pipelineBarrierInfo{};
+		pipelineBarrierInfo.src = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		pipelineBarrierInfo.dst = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		pipelineBarrierInfo.AddImageBarriers(barriers);
+		Wrapper::AddPipelineBarrier(commandBuffer, pipelineBarrierInfo);
 	}
 }

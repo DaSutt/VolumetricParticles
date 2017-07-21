@@ -92,7 +92,8 @@ namespace Renderer
 		lodScale { 1.0f },
 		noiseScale { 0.1f },
 		minTransmittance{0.0f},
-		debugFilling { false },
+		debugFilling_imageIndex { false },
+		debugFilling_levelIndex { false },
 		maxDepth{ 500.0f},
 		shadowRayPerLevel{16}
   {}
@@ -343,8 +344,11 @@ namespace Renderer
 		ImGui::SliderFloat("Particle spawn radius", &particleState_.spawnRadius, 0.2f, 10.0f);
 
     ImGui::Checkbox("Debug Rendering", &postProcessState_.debugRendering);
-		ImGui::Checkbox("Fill volumes with image indices", &volumeState_.debugFilling);
-    menuState_.saveConfiguration = ImGui::RadioButton("Save configuration", true);
+		ImGui::Checkbox("Fill volumes with image indices", &volumeState_.debugFilling_imageIndex);
+		ImGui::Checkbox("Fill volumes with level indices", &volumeState_.debugFilling_levelIndex);
+		
+				
+		menuState_.saveConfiguration = ImGui::RadioButton("Save configuration", true);
 		menuState_.exportFogTexture = ImGui::RadioButton("Save fog density texture", true);
 
 		ImGui::Checkbox("Perform time queries", &menuState_.performTimeQueries);

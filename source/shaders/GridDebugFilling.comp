@@ -30,6 +30,9 @@ SOFTWARE.
 #include "GridConstants.comp"
 #include "ImageOffset.comp"
 
+const int NODE_IMAGE_INDEX = 0;
+const int NODE_LEVEL_INDEX = 1;
+
 layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
 layout(set = 0, binding = 1) uniform cbData
 {
@@ -38,11 +41,16 @@ layout(set = 0, binding = 1) uniform cbData
   int atlasSideLength;
 }cb_;
 
-//Fill all texels of the texture atlas with debug values
-layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
-void main()
+layout(push_constant) uniform debugData
 {
-  //Fill each texel based on the image offset of the node
+  vec4 textureValue;
+  uint imageOffset;
+  int nodeType;
+} debugData_;
+
+//Fill each texel based on the image offset of the node
+void FillImageIndex()
+{
   const int imageIndex = int(gl_WorkGroupID.x);
   const ivec3 imageOffset = CalcImageOffset_I(imageIndex, cb_.atlasSideLength);
   const vec4 imageColor = vec4(imageOffset, 0.0) / float(cb_.atlasSideLength);
@@ -54,6 +62,36 @@ void main()
     const ivec3 texelCoord = position + texelOffset;
       
     imageStore(imageAtlas_, texelCoord, imageColor);
+  }
+}
+
+//Fills each texel based on the color for its specific level
+void FillLevelIndex()
+{
+  const ivec3 texelOffset = UnpackImageOffset_I(debugData_.imageOffset) * IMAGE_RESOLUTION;
+  const vec4 texValue = debugData_.textureValue;
+  
+  for(int z = 0; z < IMAGE_RESOLUTION; ++z)
+  {
+    const ivec3 position = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
+    const ivec3 texelCoord = position + texelOffset;
+    
+    imageStore(imageAtlas_, texelCoord, texValue);
+  }  
+}
+
+//Fill all texels of the texture atlas with debug values
+layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
+void main()
+{
+  switch(debugData_.nodeType)
+  {
+    case NODE_IMAGE_INDEX:
+      FillImageIndex();
+      break;
+    case NODE_LEVEL_INDEX:
+      FillLevelIndex();
+      break;
   }
 }
 
@@ -80,14 +118,7 @@ layout(set = 0, binding = 1) uniform cbData
   int atlasSideLength;
 } cb_;
 
-layout(push_constant) uniform debugData
-{
-  ivec3 imageOffset;
-  int activeNode;
-  float scattering;
-  float extinction;
-  float phaseG;
-} debugData_;
+
 
 ivec3 CalcOffset(int index)
 {

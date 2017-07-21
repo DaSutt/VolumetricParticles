@@ -117,10 +117,6 @@ namespace Renderer
 		groundFog_.SetSizes(gridLevels_[1].GetGridCellSize(), scale.x);
 		particleSystems_.SetGridOffset(worldBoundingBox_.min);
 
-		debugFilling_.SetWorldOffset(worldBoundingBox_.min);
-		//debugFilling_.AddDebugNode({0,-16,0}, 0.0f, 10.0f, 0.0f, 1 );
-		//debugFilling_.AddDebugNode({10,0,14 }, 0.0f, 0.0f, 0.0f, 2);
-
 		Status::UpdateGrid(scale, worldBoundingBox_.min);
 		Status::SetParticleSystems(&particleSystems_);
 	}
@@ -526,8 +522,6 @@ namespace Renderer
 		//gridLevels_[2].AddNode({ 256, 256, 258 });
 		//gridLevels_[2].AddNode({ 254, 256,256 });
 
-		debugFilling_.InsertDebugNodes(gridLevels_);
-		
 		groundFog_.UpdateGridCells(&gridLevels_[1]);
 		particleSystems_.GridInsertParticles(raymarchingData_.gridMinPosition, &gridLevels_[2]);
 
@@ -554,13 +548,13 @@ namespace Renderer
 		//neighborCells_.CalculateNeighbors(gridLevels_);
 
 		debugFilling_.SetImageCount(&gridLevels_[2]);
-
-		debugFilling_.UpdateDebugNodes(gridLevels_);
+		debugFilling_.AddDebugNodes(gridLevels_);
 
 		volumeMediaData_.atlasSideLength = atlasSideLength;
 		volumeMediaData_.imageResolutionOffset = GridConstants::imageResolution;
 		raymarchingData_.atlasSideLength = atlasSideLength;
 		//neighborCells_.UpdateAtlasProperties(atlasSideLength);
+
   }
 
 	
@@ -696,7 +690,7 @@ namespace Renderer
 
   void AdaptiveGrid::UpdateBoundingBoxes()
   {
-		const bool fillImageIndices = GuiPass::GetVolumeState().debugFilling;
+		const bool fillImageIndices = GuiPass::GetVolumeState().debugFilling_imageIndex;
     debugBoundingBoxes_.clear();
 		for (auto& level : gridLevels_)
     {

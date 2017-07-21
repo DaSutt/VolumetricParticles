@@ -82,7 +82,8 @@ namespace Renderer
 			float lodScale;
 			float noiseScale;
 			float minTransmittance;
-			bool debugFilling;
+			bool debugFilling_imageIndex;
+			bool debugFilling_levelIndex;
 			float maxDepth;
 			int shadowRayPerLevel;
       VolumeState();

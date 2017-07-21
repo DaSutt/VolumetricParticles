@@ -38,39 +38,31 @@ namespace Renderer
 	//Used to fill the texture atlas with debug data
 		//All images are filled inside with color value based on 
 			//the image offset inside the atlas [0, 1]
-		//Individual debug nodes with a specific value, fills the whole node image
+		//Fill images based on their level and mipmap
 	class DebugFilling
 	{
 	public:		
 		void SetGpuResources(int atlasImageIndex, int atlasBufferIndex);
 		
 		int GetShaderBinding(ShaderBindingManager* bindingManager, int frameCount);
-		void SetWorldOffset(const glm::vec3& worldOffset);
-		void AddDebugNode(const glm::vec3 worldPosition, 
-			float scattering, float absorption, float phaseG, int gridLevel);
-
 		void SetImageCount(GridLevel* mostDetailedLevel);
 
-		void InsertDebugNodes(std::vector<GridLevel>& gridLevels);
-		void UpdateDebugNodes(std::vector<GridLevel>& gridLevels);
+		void AddDebugNodes(std::vector<GridLevel>& gridLevels);
+
 		void Dispatch(ImageManager* imageManager, VkCommandBuffer commandBuffer);
 	private:
-		struct PushConstantData
+		enum NodeType
 		{
-			glm::ivec3 imageOffset;
-			int activeNode;					//set to 1 if a debug node should be filled
-			float scattering;
-			float extinction;
-			float phaseG;
+			IMAGE_INDEX,
+			LEVEL_INDEX,
+			NODE_MAX
 		};
 
-		struct DebugNode
+		struct PushConstantData
 		{
-			PushConstantData pushData;
-			
-			glm::vec3 gridPosition;
-			int gridLevel;
-			int indexNode;
+			glm::vec4 textureValue;
+			unsigned int imageOffset;
+			int nodeType;					
 		};
 
 		int dispatchCount_ = 0;
@@ -78,10 +70,9 @@ namespace Renderer
 		int atlasImageIndex_ = -1;
 		int atlasBufferIndex_ = -1;
 		int pushConstantIndex_ = -1;
-		
-		std::vector<DebugNode> debugNodes_;
-		glm::vec3 worldOffset_ = glm::vec3(0.0f);
-		
+
+		std::vector<PushConstantData> debugNodes_;
+						
 		//TODO: remove this
 		ShaderBindingManager* bindingManager_ = nullptr; 
 	};
