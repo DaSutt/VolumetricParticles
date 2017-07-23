@@ -282,7 +282,7 @@ namespace Renderer
 		ResizeGpuResources(bufferManager, imageManager);
 		UpdateGpuResources(bufferManager, frameIndex);
 
-		if (GuiPass::GetPostProcessState().debugRendering)
+		if (GuiPass::GetDebugVisState().nodeRendering)
 		{
 			UpdateBoundingBoxes();
 		}
@@ -690,8 +690,7 @@ namespace Renderer
 
   void AdaptiveGrid::UpdateBoundingBoxes()
   {
-		const bool fillImageIndices = GuiPass::GetVolumeState().debugFilling_imageIndex;
-    debugBoundingBoxes_.clear();
+		debugBoundingBoxes_.clear();
 		for (auto& level : gridLevels_)
     {
 			level.UpdateBoundingBoxes();
@@ -701,11 +700,6 @@ namespace Renderer
 			glm::vec4 color = glm::vec4(0, 1, 0, 1);
 			for (size_t i = 0; i < level.nodeBoundingBoxes_.size(); ++i)
 			{
-				if (fillImageIndices)
-				{
-					color = glm::vec4(nodeData.imageInfos_[i].image, 1.0f)
-						/ static_cast<float>((imageAtlas_.GetSideLength() * GridConstants::imageResolution));
-				}
 				debugBoundingBoxes_.push_back({
 					WorldMatrix(level.nodeBoundingBoxes_[i]), color
 				});

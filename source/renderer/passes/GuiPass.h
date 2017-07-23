@@ -82,17 +82,9 @@ namespace Renderer
 			float lodScale;
 			float noiseScale;
 			float minTransmittance;
-			bool debugFilling_imageIndex;
-			bool debugFilling_levelIndex;
 			float maxDepth;
 			int shadowRayPerLevel;
       VolumeState();
-    };
-
-    struct PostProcessState
-    {
-      PostProcessState();
-      bool debugRendering;
     };
 
 		struct ParticleState
@@ -102,6 +94,29 @@ namespace Renderer
 			float minParticleRadius;
 			float maxParticleRadius;
 			ParticleState();
+		};
+
+		struct ConfigState
+		{
+			bool showDebugVis;
+			ConfigState();
+		};
+
+		struct DebugVisState
+		{
+			enum DebugFillingType
+			{
+				DEBUG_FILL_NONE,
+				DEBUG_FILL_IMAGEINDICES,
+				DEBUG_FILL_LEVELS,
+				DEBUG_FILL_MAX
+			};
+			
+			bool nodeRendering;
+			DebugFillingType debugFillingType;
+			
+			DebugVisState();
+			bool FillingStateSet(DebugFillingType type) const;
 		};
 
     GuiPass(ShaderBindingManager* bindingManager, RenderPassManager* renderPassManager);
@@ -126,8 +141,8 @@ namespace Renderer
     static const MenuState& GetMenuState() { return menuState_; }
     static const LightingState& GetLightingState() { return lightingState_; }
     static const VolumeState& GetVolumeState() { return volumeState_; }
-    static const PostProcessState& GetPostProcessState() { return postProcessState_; }
 		static const ParticleState& GetParticleState() { return particleState_; }
+		static const DebugVisState& GetDebugVisState() { return debugVisState_; }
   private:
     enum GraphicSubpasses
     {
@@ -149,7 +164,9 @@ namespace Renderer
     static MenuState menuState_;
     static LightingState lightingState_;
     static VolumeState volumeState_;
-    static PostProcessState postProcessState_;
 		static ParticleState particleState_;
+
+		static ConfigState configState_;
+		static DebugVisState debugVisState_;
   };
 }

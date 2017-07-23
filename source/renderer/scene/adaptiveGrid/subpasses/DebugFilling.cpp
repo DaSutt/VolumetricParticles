@@ -89,7 +89,7 @@ namespace Renderer
 
 	void DebugFilling::AddDebugNodes(std::vector<GridLevel>& gridLevels)
 	{
-		if (GuiPass::GetVolumeState().debugFilling_levelIndex)
+		if (GuiPass::GetDebugVisState().FillingStateSet(GuiPass::DebugVisState::DEBUG_FILL_LEVELS))
 		{
 			debugNodes_.clear();
 			for (size_t i = 0; i < gridLevels.size(); ++i)
@@ -121,7 +121,10 @@ namespace Renderer
 
 		VkPipelineLayout pipelineLayout = bindingManager_->GetPipelineLayout(SUBPASS_VOLUME_ADAPTIVE_DEBUG_FILLING);
 
-		if (GuiPass::GetVolumeState().debugFilling_imageIndex)
+		const auto fillingState = GuiPass::GetDebugVisState().debugFillingType;
+		switch (fillingState)
+		{
+		case GuiPass::DebugVisState::DEBUG_FILL_IMAGEINDICES:
 		{
 			PushConstantData pushData;
 			pushData.nodeType = IMAGE_INDEX;
@@ -130,7 +133,8 @@ namespace Renderer
 
 			vkCmdDispatch(commandBuffer, dispatchCount_, 1, 1);
 		}
-		else if (GuiPass::GetVolumeState().debugFilling_levelIndex)
+			break;
+		case GuiPass::DebugVisState::DEBUG_FILL_LEVELS:
 		{
 			for (const auto& debugNode : debugNodes_)
 			{
@@ -139,6 +143,8 @@ namespace Renderer
 
 				vkCmdDispatch(commandBuffer, 1, 1, 1);
 			}
+		}
+			break;
 		}
 		
 		ImageManager::BarrierInfo barrierInfo{};

@@ -272,7 +272,7 @@ namespace Renderer
 
   void PostProcessPass::UpdateBufferData(Scene* scene, Surface* surface, RenderScene* renderScene)
   {
-    if (GuiPass::GetPostProcessState().debugRendering)
+    if (GuiPass::GetDebugVisState().nodeRendering)
     {
       debugBoundingBoxes_.clear();
       const auto viewProj = scene->GetCamera().GetProj() * scene->GetCamera().GetView();
@@ -355,8 +355,8 @@ namespace Renderer
 
     vkCmdEndRenderPass(commandBuffers_[frameIndex]);
 
-    const auto state = GuiPass::GetPostProcessState();
-    if (state.debugRendering)
+    const auto state = GuiPass::GetDebugVisState();
+    if (state.nodeRendering)
     {
       pass = SUBPASS_POSTPROCESS_DEBUG;
       auto graphicsSubpass = GRAPHICS_DEBUG;

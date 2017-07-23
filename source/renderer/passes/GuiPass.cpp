@@ -55,8 +55,9 @@ namespace Renderer
   GuiPass::MenuState GuiPass::menuState_ = {};
   GuiPass::LightingState GuiPass::lightingState_ = {};
   GuiPass::VolumeState GuiPass::volumeState_ = {};
-  GuiPass::PostProcessState GuiPass::postProcessState_ = {};
 	GuiPass::ParticleState GuiPass::particleState_ = {};
+	GuiPass::DebugVisState GuiPass::debugVisState_ = {};
+	GuiPass::ConfigState GuiPass::configState_ = {};
 
   GuiPass::MenuState::MenuState() :
     saveConfiguration{ false },
@@ -92,14 +93,8 @@ namespace Renderer
 		lodScale { 1.0f },
 		noiseScale { 0.1f },
 		minTransmittance{0.0f},
-		debugFilling_imageIndex { false },
-		debugFilling_levelIndex { false },
 		maxDepth{ 500.0f},
 		shadowRayPerLevel{16}
-  {}
-
-  GuiPass::PostProcessState::PostProcessState() :
-    debugRendering{false}
   {}
 
 	GuiPass::ParticleState::ParticleState() :
@@ -107,6 +102,28 @@ namespace Renderer
 		spawnRadius{2.0f},
 		minParticleRadius{0.2f},
 		maxParticleRadius{1.0f}
+	{}
+
+
+	GuiPass::DebugVisState::DebugVisState() :
+		nodeRendering{false},
+		debugFillingType{GuiPass::DebugVisState::DEBUG_FILL_NONE}
+	{}
+
+	bool GuiPass::DebugVisState::FillingStateSet(GuiPass::DebugVisState::DebugFillingType type) const
+	{
+		return debugFillingType == type;
+	}
+
+	const char * menuNames_debugFilling[] = 
+	{
+		"Disable Debug Filling",
+		"Fill with Image Indices",
+		"Fill With Level Indices"
+	};
+
+	GuiPass::ConfigState::ConfigState() :
+		showDebugVis{false}
 	{}
 
   GuiPass::GuiPass(ShaderBindingManager* bindingManager, RenderPassManager* renderPassManager) :
@@ -295,6 +312,16 @@ namespace Renderer
 
     ImGui::NewFrame();
 
+		{
+			ImGui::Begin("Configuration");
+			{
+				ImGui::Checkbox("Debug Visualization", &configState_.showDebugVis);
+			}
+			ImGui::End();
+		}
+
+		ImGui::Begin("Debug");
+
     menuState_.reloadShaders = ImGui::RadioButton("Reload shaders", true);
     menuState_.loadScene = ImGui::RadioButton("Load Scene", true);
 
@@ -343,12 +370,7 @@ namespace Renderer
 		particleState_.maxParticleRadius = radiusValues[1];
 		ImGui::SliderFloat("Particle spawn radius", &particleState_.spawnRadius, 0.2f, 10.0f);
 
-    ImGui::Checkbox("Debug Rendering", &postProcessState_.debugRendering);
-		ImGui::Checkbox("Fill volumes with image indices", &volumeState_.debugFilling_imageIndex);
-		ImGui::Checkbox("Fill volumes with level indices", &volumeState_.debugFilling_levelIndex);
-		
-				
-		menuState_.saveConfiguration = ImGui::RadioButton("Save configuration", true);
+    menuState_.saveConfiguration = ImGui::RadioButton("Save configuration", true);
 		menuState_.exportFogTexture = ImGui::RadioButton("Save fog density texture", true);
 
 		ImGui::Checkbox("Perform time queries", &menuState_.performTimeQueries);
@@ -359,6 +381,23 @@ namespace Renderer
     ImGui::DragFloat("Shadow map log weight", &lightingState_.shadowLogWeight, 0.01f, 0.0f, 1.0f);
     ImGui::Text("Application %.4f ms/frame ", deltaTime_ * 1000.0f);
 
+		ImGui::End();
+
+		if (configState_.showDebugVis)
+		{
+			ImGui::Begin("Debug Visualization");
+			{
+				ImGui::Checkbox("Render Grid Nodes", &debugVisState_.nodeRendering);
+				int type = debugVisState_.debugFillingType;
+				if (ImGui::Combo("Debug Filling of Volumes", &type, menuNames_debugFilling,
+					DebugVisState::DEBUG_FILL_MAX))
+				{
+					debugVisState_.debugFillingType = static_cast<DebugVisState::DebugFillingType>(type);
+					printf("New Type %s\n", menuNames_debugFilling[type]);
+				}
+			}
+			ImGui::End();
+		}
     ImGui::Render();
 
     const auto device = instance->GetDevice();
