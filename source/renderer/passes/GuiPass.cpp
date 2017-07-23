@@ -409,7 +409,7 @@ namespace Renderer
       BufferManager::BufferInfo bufferInfo = {};
       bufferInfo.pool = BufferManager::MEMORY_SCENE;
       bufferInfo.typeBits = BufferManager::BUFFER_SCENE_BIT | BufferManager::BUFFER_STAGING_BIT;
-      bufferInfo.size = std::max(draw_data->TotalVtxCount * sizeof(ImDrawVert), 70000ull);
+      bufferInfo.size = std::max(draw_data->TotalVtxCount * sizeof(ImDrawVert), 140000ull);
       bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
       vertexBufferIndex_ = bufferManager->RequestBuffer(bufferInfo);
     }
@@ -418,7 +418,7 @@ namespace Renderer
       BufferManager::BufferInfo bufferInfo = {};
       bufferInfo.pool = BufferManager::MEMORY_SCENE;
       bufferInfo.typeBits = BufferManager::BUFFER_SCENE_BIT | BufferManager::BUFFER_STAGING_BIT;
-      bufferInfo.size = std::max(draw_data->TotalIdxCount * sizeof(ImDrawIdx), 13000ull);
+      bufferInfo.size = std::max(draw_data->TotalIdxCount * sizeof(ImDrawIdx), 26000ull);
       bufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
       indexBufferIndex_ = bufferManager->RequestBuffer(bufferInfo);
     }

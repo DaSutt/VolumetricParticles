@@ -22,6 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef STEPS_H
+#define STEPS_H
+
+#include "Resources.comp"
+
 float CalcExponentialDepth(int currStep, int maxSteps, float expScale)
 {
   return exp(currStep / float(maxSteps) * expScale) - 1.0f; 
@@ -37,3 +42,28 @@ vec2 NextDepth(int stepCount, int maxSteps, float scale, float prevDepth)
   //TODO apply jittering
   return result;
 }
+
+struct MaxLevelData
+{
+  int currMaxLevel;   //Maximum level for which traversal of the grid is performed
+  int changeCount;    //Counts the steps after the maximum level changed for mip map blending
+};
+
+//Calculate the maximum level for traversal during raymarching
+//A minimum step length which guarantees a number of steps on this level. This is based on
+//the lod scale value
+//The change count is reset after each change of the maximum level and increased otherwise
+//It is used during blending between mipmap and detailed value
+MaxLevelData CalcMaxLevel(MaxLevelData prevMaxLevelData, float stepLength)
+{
+  const int prevMaxLevel = prevMaxLevelData.currMaxLevel;
+  const float minStepLength = levelData_.data[prevMaxLevel].gridCellSize 
+    * raymarchData_.lodScale_Reciprocal;
+  prevMaxLevelData.currMaxLevel = stepLength > minStepLength ? 
+    max(0, prevMaxLevel - 1) : prevMaxLevel;
+  prevMaxLevelData.changeCount = prevMaxLevel == prevMaxLevelData.currMaxLevel ?
+    prevMaxLevelData.changeCount + 1 : 0;
+  return prevMaxLevelData;
+}
+
+#endif

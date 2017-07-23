@@ -48,6 +48,10 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
   //Next depth, step length
   vec2 stepData = vec2(globalIntersection.x, 0.0f);
   int maxLevel = -1;
+  
+  MaxLevelData maxLevelData;
+  maxLevelData.currMaxLevel = 2;
+  maxLevelData.changeCount = 0;
   while(stepCount < raymarchData_.maxSteps && stepData.x < globalIntersection.y)
   {
     //Advance to next step
@@ -58,7 +62,8 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     stepData.x = min(stepData.x, maxDepth);
     
     const vec3 currentGridPos = clamp(gridOrigin + direction * stepData.x, 0.00001, 511.9999);
-    GridStatus status = TraverseGrid(currentGridPos);
+    maxLevelData = CalcMaxLevel(maxLevelData, stepData.x);
+    GridStatus status = TraverseGrid(currentGridPos, maxLevelData.currMaxLevel, 1.0f);
     //if(status.currentLevel == 2)
     //{
     //  if(status.accumTexValue != vec4(0))

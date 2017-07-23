@@ -52,14 +52,14 @@ struct SampleData
 vec3 GetImageOffset(const int nodeIndex, const bool mipMapping)
 {
   uint imageOffset = nodeInfos_.data[nodeIndex].imageOffset;
-//  //Set image offset to mipmap if node has one
-//  imageOffset = (mipMapping && (imageOffset & (1 << IMAGE_MIPMAP_BIT)) == 1) ?
-//    nodeInfos_.data[nodeIndex].imageOffsetMipMap : imageOffset;
+  //Set image offset to mipmap if node has one
+  imageOffset = (mipMapping && (imageOffset & (1 << IMAGE_MIPMAP_BIT)) == 1) ?
+    nodeInfos_.data[nodeIndex].imageOffsetMipMap : imageOffset;
   return UnpackImageOffset(imageOffset);
 }
 
 //Calculates the texture coordinate inside of the image atlas for the current node
-vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const int level)
+vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const int level, bool mipmapping)
 {
   //Position of the node in the range [0,1]
   const vec3 nodeSpacePos = fract(gridSpacePos / levelData_.data[level].gridCellSize);
@@ -68,7 +68,7 @@ vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const 
   const vec3 texCoord = nodeSpacePos * raymarchData_.nodeTexelSize + 
     raymarchData_.texelHalfSize;  
   
-  const vec3 imageOffset = GetImageOffset(nodeIndex, false);
+  const vec3 imageOffset = GetImageOffset(nodeIndex, mipmapping);
   return texCoord + imageOffset * raymarchData_.atlasSideLength_Reciprocal;
 }
 //
@@ -98,9 +98,9 @@ ivec2 CalcBitIndex(const vec3 gridPos, const int parentNodeIndex) {
 //Sample the grid at the position for a certain level
 //Accumulates this value with the already sampled data
 SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos, 
-  int nodeIndex, int level)
+  int nodeIndex, int level, bool mipmapping)
 {
-  const vec3 texCoord = AtlasTextureCoordinate(gridSpacePos, nodeIndex, level);
+  const vec3 texCoord = AtlasTextureCoordinate(gridSpacePos, nodeIndex, level, mipmapping);
   const vec4 texValue = texture(textureAtlas_, texCoord);
 //  
 //  sampleData.accumTexValue = Accumulate(sampleData.accumTexValue, texValue);
@@ -146,7 +146,7 @@ int GetChildNodeIndex(const ivec2 bitIndexOffset, const int level, const int par
 
 //Traverse all available grid levels starting at the root node at the grid space position 
 //Accumulate the volumetric coefficients
-GridStatus TraverseGrid(const vec3 gridSpacePos)
+GridStatus TraverseGrid(const vec3 gridSpacePos, int maxLevel, float mipMapWeight)
 {
   GridStatus status;
   status.accumTexValue = vec4(0.0);
@@ -157,11 +157,12 @@ GridStatus TraverseGrid(const vec3 gridSpacePos)
   sampleData.accumTexValue = vec3(0.0f);
 
   //Sample on the root level
-  sampleData = SampleGrid(sampleData, gridSpacePos, parentNodeIndex, 0);
+  bool mipMapping = mipMapWeight > 0.0f && maxLevel == 0;
+  sampleData = SampleGrid(sampleData, gridSpacePos, parentNodeIndex, 0, mipMapping);
   status.currentLevel = 0;
   
   //Sample all available levels with higher resolution at the same position
-  for(int level = 0; level < MAX_LEVELS - 1; ++level)
+  for(int level = 0; level < maxLevel; ++level)
   {
     const int childLevel = level + 1;
     //Use the grid space position to calculate the position of the child node
@@ -179,7 +180,9 @@ GridStatus TraverseGrid(const vec3 gridSpacePos)
     parentNodeIndex = GetChildNodeIndex(bitIndexOffset, childLevel, parentNodeIndex);
     //Store the world space offset of this node
     gridOffset = levelData_.data[level].childCellSize * vec3(childNodePos);
-    sampleData = SampleGrid(sampleData, gridSpacePos, parentNodeIndex, childLevel);
+    
+    mipMapping = mipMapWeight > 0.0f && childLevel == maxLevel;
+    sampleData = SampleGrid(sampleData, gridSpacePos, parentNodeIndex, childLevel, mipMapping);
     status.currentLevel = childLevel;
   }
   
