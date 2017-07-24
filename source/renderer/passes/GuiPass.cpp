@@ -123,7 +123,7 @@ namespace Renderer
 	};
 
 	GuiPass::ConfigState::ConfigState() :
-		showDebugVis{false}
+		showDebugVis{ true }
 	{}
 
   GuiPass::GuiPass(ShaderBindingManager* bindingManager, RenderPassManager* renderPassManager) :

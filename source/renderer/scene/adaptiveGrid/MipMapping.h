@@ -93,6 +93,16 @@ namespace Renderer
 		void AddMergingBarrier(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex, bool lastLevel);
 		void UpdateImageOffsets(ImageManager* imageManager);
 
+		struct MipMapInfo
+		{
+			uint32_t childImageOffset;
+			uint32_t parentTexel;
+		};
+		//Returns the image offset for the child that has to be averaged
+		//On non leaf nodes the mipmaps are averaged instead of the original values
+		//Also returns the texel in the parent node to which the child values corresponds
+		MipMapInfo GetMipMapInfo(int childNodeIndex, const GridLevel* childLevel);
+
 		int cbIndex_ = -1;
 		int perLevelPushConstantIndex_ = -1;
 		int perFillingPushConstantIndex_ = -1;
@@ -102,11 +112,6 @@ namespace Renderer
 		int atlasSideLength_ = 1;
 		CBData cbData_;
 
-		struct MipMapInfo
-		{
-			uint32_t childImageOffset;	//without corner values
-			uint32_t parentTexel;
-		};
 		std::vector<MipMapInfo> mipMapData_;
 		std::vector<int> mipMapOffsets_;
 		

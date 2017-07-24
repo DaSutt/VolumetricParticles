@@ -142,7 +142,7 @@ namespace Renderer
 
 	bool NodeData::MipMapSet(const uint32_t imageOffset)
 	{
-		return imageOffset & (1 << 1);
+		return imageOffset & (1 << 0);
 	}
 
 	void NodeData::SetMipMapBit(uint32_t& textureOffset)

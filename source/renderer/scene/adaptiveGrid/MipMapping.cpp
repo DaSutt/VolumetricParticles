@@ -147,64 +147,49 @@ namespace Renderer
 		LevelData levelData;
 		levelData.averagingOffset = static_cast<int>(mipMapData_.size());
 		levelData.mergingOffset = static_cast<int>(imageOffsets_.size());
-		
-		const auto& nodeDataParent = parentLevel->GetNodeData();
-		const auto& childNodeIndices = parentLevel->GetChildIndices();
 
+		const auto& nodeDataParent = parentLevel->GetNodeData();
 		const auto& nodeDataChild = childLevel->GetNodeData();
-		const bool childLeafLevel = childLevel->IsLeafLevel();
+
+		const auto& childNodeIndices = parentLevel->GetChildIndices();
 
 		const int parentNodeCount = nodeDataParent.GetNodeCount();
 
-		const auto& nodeInfoChilds = nodeDataChild.GetNodeInfos();
-		const auto& nodeInfosParent = nodeDataParent.GetNodeInfos();
-		int childIndexOffset = 0;
+		int childNodeOffset = 0;
+		
+		//parent node offset is used to remove the per level offset from the child indices
+		int parentNodeOffset = 0;
+		if (!childNodeIndices.empty())
+		{
+			parentNodeOffset = -childNodeIndices[0];
+		}
+		//go through all parent nodes and collect all child nodes that contribute to mipmapping
+		for (int parentNodeIndex = 0; parentNodeIndex < parentNodeCount; ++parentNodeIndex)
+		{
+			const int nodeCount = nodeDataParent.childCount_[parentNodeIndex];
 
-		const auto imageOffset = NodeData::PackTextureOffset({ 1,1,1 });
-		//go through all parent nodes and collect all child nodes that contribute to mip mapping
-		//for (int parentNodeIndex = 0; parentNodeIndex < parentNodeCount; ++parentNodeIndex)
-		//{
-		//	const int nodeCount = nodeDataParent.childCount_[parentNodeIndex];
-		//	const int nodeOffset = nodeInfosParent[0].childOffset + 1;
-		//	uint32_t childImageOffset = 0;
-		//
-		//	//For each child store the start in the image atlas without edge values
-		//	for (int i = childIndexOffset; i < nodeCount + childIndexOffset; ++i)
-		//	{
-		//		const int childNodeIndex = childNodeIndices[i] - nodeOffset;
-		//		//On the leaf level the original textures are used for averaging
-		//		if (childLeafLevel)
-		//		{
-		//			childImageOffset = nodeInfoChilds[childNodeIndex].textureOffset;
-		//		}
-		//		//On coarser levels use the mip map values to accord for the more detailed levels as well
-		//		else
-		//		{
-		//			childImageOffset = nodeInfoChilds[childNodeIndex].textureOffsetMipMap;
-		//		}
-		//		childImageOffset += imageOffset;
-		//		const auto parentTexelOffset = NodeData::PackTextureOffset( nodeDataChild.gridPos_[childNodeIndex] ) 
-		//			+ imageOffset;
-		//
-		//		mipMapData_.push_back({ childImageOffset, parentTexelOffset });
-		//		mipMapOffsets_.push_back(mipMapCount_);
-		//	}
-		//
-		//	//Skip parent nodes without any children
-		//	if (nodeCount > 0)
-		//	{
-		//		childIndexOffset += nodeCount;
-		//		
-		//		NodeImageOffsets offsets;
-		//		offsets.imageOffset = nodeInfosParent[parentNodeIndex].textureOffset;
-		//		offsets.mipMapImageOffset = nodeInfosParent[parentNodeIndex].textureOffsetMipMap;
-		//		offsets.mipMapSourceOffset = static_cast<uint32_t>(imageOffsets_.size());
-		//		imageOffsets_.push_back(offsets);
-		//		
-		//		mipMapCount_++;
-		//	}
-		//}
+			//for each child store the start in the image atlas 
+			for (int i = childNodeOffset; i < nodeCount + childNodeOffset; ++i)
+			{
+				const int childNodeIndex = childNodeIndices[i] + parentNodeOffset;
+				mipMapData_.push_back(GetMipMapInfo(childNodeIndex, childLevel));
+				mipMapOffsets_.push_back(mipMapCount_);
+			}
 
+			if (nodeCount > 0)
+			{
+				//		NodeImageOffsets offsets;
+				//		offsets.imageOffset = nodeInfosParent[parentNodeIndex].textureOffset;
+				//		offsets.mipMapImageOffset = nodeInfosParent[parentNodeIndex].textureOffsetMipMap;
+				//		offsets.mipMapSourceOffset = static_cast<uint32_t>(imageOffsets_.size());
+				//		imageOffsets_.push_back(offsets);
+						
+				mipMapCount_++;
+			}
+
+			childNodeOffset += nodeCount;
+		}
+		
 		levelData.childImageCount = static_cast<uint32_t>(mipMapData_.size() - levelData.averagingOffset);
 		levelData.mipMapCount = static_cast<uint32_t>(imageOffsets_.size() - levelData.mergingOffset);
 		levelData_.push_back(levelData);
@@ -400,5 +385,25 @@ namespace Renderer
 		}
 
 		mipMapImageAtlas_.Resize(imageManager);
+	}
+
+	MipMapping::MipMapInfo MipMapping::GetMipMapInfo(int childNodeIndex, const GridLevel* childLevel)
+	{
+		const bool leafLevel = childLevel->IsLeafLevel();
+		const auto& nodeInfo = childLevel->GetNodeData().GetNodeInfos()[childNodeIndex];
+
+		MipMapInfo mipmapInfo = {};
+		if (leafLevel)
+		{
+			mipmapInfo.childImageOffset = nodeInfo.textureOffset;
+		}
+		else
+		{
+			mipmapInfo.childImageOffset = nodeInfo.textureOffsetMipMap;
+		}
+
+		//The parent texel is based on the node position of the child node
+		mipmapInfo.parentTexel = NodeData::PackTextureOffset(childLevel->GetNodeData().gridPos_[childNodeIndex]);
+		return mipmapInfo;
 	}
 }
