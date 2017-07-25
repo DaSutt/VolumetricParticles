@@ -71,17 +71,28 @@ vec3 AtlasTextureCoordinate(const vec3 gridSpacePos, const int nodeIndex, const 
   const vec3 imageOffset = GetImageOffset(nodeIndex, mipmapping);
   return texCoord + imageOffset * raymarchData_.atlasSideLength_Reciprocal;
 }
-//
-////Combine the already accumulated texture values of multiple levels with
-////the texture value at the current level
-//vec3 Accumulate(vec3 accumTexValue, vec4 newTexValue)
-//{
-//  //Add scattering and extinction
-//  accumTexValue.xy += newTexValue.xy;
-//  //Only accumulate the phase function for participating media with scattering
-//  accumTexValue.z += newTexValue.x > 0.0f ? newTexValue.z : 0.0f;
-//  return accumTexValue;
-//}
+
+//Combine the already accumulated texture values of multiple levels with
+//the texture value at the current level
+SampleData Accumulate(SampleData sampleData, vec4 newTexValue)
+{
+  //Add scattering and extinction
+  #ifdef CPU_DEBUG
+	sampleData.accumTexValue += vec3(newTexValue.x, newTexValue.y, 0.0f);
+  #else
+	sampleData.accumTexValue.xy += newTexValue.xy;
+  #endif
+  //Only accumulate the phase function for participating media with scattering
+  const bool useScattering = newTexValue.x > 0.0f;
+  sampleData.accumTexValue.z += useScattering ? newTexValue.z : 0.0f;
+  sampleData.phaseCount += useScattering ? 1 : 0;
+  return sampleData;
+}
+
+float AveragePhase(float accumPhase, int phaseCount)
+{
+  return accumPhase / float(phaseCount);
+}
 
 //Calculates the 1D bitindex from the node grid position
 //Returns: ivec2(
@@ -102,12 +113,9 @@ SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos,
 {
   const vec3 texCoord = AtlasTextureCoordinate(gridSpacePos, nodeIndex, level, mipmapping);
   const vec4 texValue = texture(textureAtlas_, texCoord);
-//  
-//  sampleData.accumTexValue = Accumulate(sampleData.accumTexValue, texValue);
-//  sampleData.phaseCount = texValue.x > 0.0f ? sampleData.phaseCount + 1 : sampleData.phaseCount;
-	
-  sampleData.accumTexValue = vec3(texValue);
-  return sampleData;
+  
+  sampleData = Accumulate(sampleData, texValue);
+	return sampleData;
 }
 
 //Calculate the child node position inside the parent node
@@ -185,6 +193,7 @@ GridStatus TraverseGrid(const vec3 gridSpacePos, int maxLevel, float mipMapWeigh
     status.currentLevel = childLevel;
   }
   
+  sampleData.accumTexValue.z = AveragePhase(sampleData.accumTexValue.z, sampleData.phaseCount);
   status.accumTexValue = vec4(sampleData.accumTexValue, 0.0f);
   return status;
 }

@@ -119,9 +119,11 @@ namespace Renderer
 			};
 			
 			bool nodeRendering;
+			bool bbRendering;
 			DebugFillingType debugFillingType;
 			
 			DebugVisState();
+			bool UseDebugRendering() const { return nodeRendering || bbRendering; }
 			bool FillingStateSet(DebugFillingType type) const;
 		};
 

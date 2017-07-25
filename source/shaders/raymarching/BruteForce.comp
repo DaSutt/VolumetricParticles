@@ -26,6 +26,7 @@ SOFTWARE.
 #include "Steps.comp"
 #include "Resources.comp"
 #include "GridTraversal.comp"
+#include "Integration.comp"
 
 vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction, 
   const float maxDepth)
@@ -64,6 +65,9 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     const vec3 currentGridPos = clamp(gridOrigin + direction * stepData.x, 0.00001, 511.9999);
     maxLevelData = CalcMaxLevel(maxLevelData, stepData.x);
     GridStatus status = TraverseGrid(currentGridPos, maxLevelData.currMaxLevel, 1.0f);
+    
+    accumScatteringTransmittance = IntegrateScatteringTransmittance(
+      accumScatteringTransmittance, status.accumTexValue, direction, 1.0f, stepData.x);
     //if(status.currentLevel == 2)
     //{
     //  if(status.accumTexValue != vec4(0))
@@ -72,11 +76,11 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     //  }  
     //  //return accumScatteringTransmittance;
     //}
-    if(status.currentLevel > maxLevel)
-    {
-      maxLevel = status.currentLevel;
-      accumScatteringTransmittance = status.accumTexValue;
-    }
+    //if(status.currentLevel > maxLevel)
+    //{
+    //  maxLevel = status.currentLevel;
+    //  accumScatteringTransmittance = status.accumTexValue;
+    //}
         
     //Check for early termination through geometry
     if(stepData.x >= maxDepth)

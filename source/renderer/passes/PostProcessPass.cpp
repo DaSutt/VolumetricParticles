@@ -272,42 +272,41 @@ namespace Renderer
 
   void PostProcessPass::UpdateBufferData(Scene* scene, Surface* surface, RenderScene* renderScene)
   {
-    if (GuiPass::GetDebugVisState().nodeRendering)
+		const auto& debugVisState = GuiPass::GetDebugVisState();
+    if (debugVisState.UseDebugRendering())
     {
       debugBoundingBoxes_.clear();
       const auto viewProj = scene->GetCamera().GetProj() * scene->GetCamera().GetView();
 
       //add mesh bounding boxes
-      const auto& boundingBoxes = scene->GetBoundingBoxes();
-      auto color = glm::vec4(1, 0, 0, 1);
-      for (auto& bb : boundingBoxes)
-      {
-        //debugBoundingBoxes_.push_back({ viewProj * WorldMatrix(bb), color });
-      }
+			if (debugVisState.bbRendering)
+			{
+				const auto& boundingBoxes = scene->GetBoundingBoxes();
+				const auto color = glm::vec4(1, 0, 0, 1);
+				for (auto& bb : boundingBoxes)
+				{
+					debugBoundingBoxes_.push_back({ viewProj * WorldMatrix(bb), color });
+				}
+			}
       //debugBoundingBoxes_.push_back({ viewProj * WorldMatrix(scene->GetSceneBoundingBox()), glm::vec4(1,1,0,1) });
 
       //add grid bounding boxes
-      const auto& gridBoundingBoxes = renderScene->GetAdaptiveGrid()->GetDebugBoundingBoxes();
-      color = glm::vec4(0, 1, 0, 1);
-      for (auto& bb : gridBoundingBoxes)
-      {
-        debugBoundingBoxes_.push_back({ viewProj * bb.world, bb.color});
-      }
+			if (debugVisState.nodeRendering)
+			{
+				const auto& gridBoundingBoxes = renderScene->GetAdaptiveGrid()->GetDebugBoundingBoxes();
+				const auto color = glm::vec4(0, 1, 0, 1);
+				for (auto& bb : gridBoundingBoxes)
+				{
+					debugBoundingBoxes_.push_back({ viewProj * bb.world, bb.color });
+				}
+			}
       //const auto& shadowMapBoundingBoxes = renderScene->GetShadowMap()->debugBoundingBoxes_;
       //for (size_t i = 0; i < shadowMapBoundingBoxes.size(); ++i)
       //{
       //  debugBoundingBoxes_.push_back({ viewProj * shadowMapBoundingBoxes[i],
       //    glm::vec4(i / static_cast<float>(shadowMapBoundingBoxes.size()), 0 , 1, 1) });
       //}
-
-    static std::default_random_engine generator;
-    static std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
-    static auto RandPos = std::bind(distribution, generator);
-    frameData_.randomness = { RandPos(), RandPos(), RandPos(), RandPos() };
-
-    const auto& surfaceSize = surface->GetSurfaceSize();
-    frameData_.screenSize = { surfaceSize.width, surfaceSize.height };
-    }
+		}
 
     static std::default_random_engine generator;
     static std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
@@ -356,7 +355,7 @@ namespace Renderer
     vkCmdEndRenderPass(commandBuffers_[frameIndex]);
 
     const auto state = GuiPass::GetDebugVisState();
-    if (state.nodeRendering)
+    if (state.UseDebugRendering())
     {
       pass = SUBPASS_POSTPROCESS_DEBUG;
       auto graphicsSubpass = GRAPHICS_DEBUG;

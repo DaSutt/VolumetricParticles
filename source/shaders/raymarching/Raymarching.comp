@@ -88,12 +88,12 @@ void Raymarching(uvec3 invocationID)
   const vec3 gridOrigin = worldRay.origin - raymarchData_.gridMinPosition;
   const float jitteringOffset = 0.0f;//TODO Jittering(imagePos);
   
-  //const vec4 raymarchingResult = Raymarching_BruteForce(gridOrigin, worldRay.direction,
-  //  worldRay.maxLength);
-  //imageStore(raymarchingResults_, imagePos, raymarchingResult);
+  const vec4 raymarchingResult = Raymarching_BruteForce(gridOrigin, worldRay.direction,
+    worldRay.maxLength);
+  imageStore(raymarchingResults_, imagePos, raymarchingResult);
   
-  const vec4 imageData = LoadImage(imagePos);
-  imageStore(raymarchingResults_, imagePos, imageData);  
+  //const vec4 imageData = LoadImage(imagePos);
+  //imageStore(raymarchingResults_, imagePos, imageData);  
 }
 
 #endif

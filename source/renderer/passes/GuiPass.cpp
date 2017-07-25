@@ -111,6 +111,7 @@ namespace Renderer
 
 	GuiPass::DebugVisState::DebugVisState() :
 		nodeRendering{false},
+		bbRendering{false},
 		debugFillingType{GuiPass::DebugVisState::DEBUG_FILL_NONE}
 	{}
 
@@ -349,6 +350,29 @@ namespace Renderer
 			}
 			
 			ImGui::Spacing();
+			if (ImGui::CollapsingHeader("Lighting"))
+			{
+				static float color[3] = { 1.0f, 1.0f, 1.0f };
+				ImGui::Text("Directional Light Color");
+				ImGui::ColorEdit3("##lightColor_Dir", color);
+				static float irradiance = 1.0f;
+				ImGui::DragFloat("Irradiance", &irradiance, 0.1f, 0.0f, 10.0f);
+				lightingState_.irradiance = { irradiance * color[0], irradiance * color[1], irradiance * color[2] };
+				ImGui::SliderFloat("Y Rotation", &lightingState_.lightYRotation,
+				  static_cast<float>(-M_PI), static_cast<float>(M_PI));
+				ImGui::SliderFloat("Z Rotation", &lightingState_.lightZRotation,
+				  static_cast<float>(-M_PI_2), static_cast<float>(M_PI_2));
+				{
+					glm::mat4 lightRotation = glm::eulerAngleYZ(
+						lightingState_.lightYRotation,
+						lightingState_.lightZRotation);
+					lightingState_.lightVector = lightRotation * glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+					
+					const auto& ir = lightingState_.irradiance;
+					Status::UpdateDirectionalLight(lightingState_.lightVector, glm::vec3(ir[0], ir[1], ir[2]));
+				}
+			}
+
 			if (ImGui::CollapsingHeader("Grid Data"))
 			{
 				if (ImGui::TreeNode("Global Data"))
@@ -365,6 +389,7 @@ namespace Renderer
 
 			if (ImGui::CollapsingHeader("Debug Visualization"))
 			{
+				ImGui::Checkbox("Render Object Bounding Boxes", &debugVisState_.bbRendering);
 				ImGui::Checkbox("Render Grid Nodes", &debugVisState_.nodeRendering);
 				int type = debugVisState_.debugFillingType;
 				ImGui::Text("Debug Filling Type");
@@ -382,24 +407,7 @@ namespace Renderer
 		}
 		ImGui::End();
 
-    //menuState_.reloadShaders = ImGui::RadioButton("Reload shaders", true);
-    //menuState_.loadScene = ImGui::RadioButton("Load Scene", true);
-		//
-    //ImGui::DragFloat3("Light irradiance", lightingState_.irradiance.data(), 0.1f);
-    //ImGui::SliderFloat("Light y rotation", &lightingState_.lightYRotation,
-    //  static_cast<float>(-M_PI), static_cast<float>(M_PI));
-    //ImGui::SliderFloat("Light z rotation", &lightingState_.lightZRotation,
-    //  static_cast<float>(-M_PI_2), static_cast<float>(M_PI_2));
-		//
-		//{
-		//	glm::mat4 lightRotation = glm::eulerAngleYZ(
-		//		lightingState_.lightYRotation,
-		//		lightingState_.lightZRotation);
-		//	lightingState_.lightVector = lightRotation * glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
-		//
-		//	const auto& ir = lightingState_.irradiance;
-		//	Status::UpdateDirectionalLight(lightingState_.lightVector, glm::vec3(ir[0], ir[1], ir[2]));
-		//}
+   
 		//
     //static float globalValue[2];
     //ImGui::DragFloat2("Global scattering, absorption", globalValue, 0.001f, 0.0f, 0.1f);
