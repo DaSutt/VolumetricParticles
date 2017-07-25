@@ -312,92 +312,134 @@ namespace Renderer
 
     ImGui::NewFrame();
 
+		//{
+		//	ImGui::Begin("Configuration");
+		//	{
+		//		ImGui::Checkbox("Debug Visualization", &configState_.showDebugVis);
+		//	}
+		//	ImGui::End();
+		//}
+
+		menuState_.loadScene = false;
+		menuState_.reloadShaders = false;
+
+		ImGuiWindowFlags window_flags = {};
+		window_flags |= ImGuiWindowFlags_MenuBar;
+		if (ImGui::Begin("Configuration", nullptr, window_flags))
 		{
-			ImGui::Begin("Configuration");
+			if (ImGui::BeginMenuBar())
 			{
-				ImGui::Checkbox("Debug Visualization", &configState_.showDebugVis);
+				if (ImGui::BeginMenu("Menu"))
+				{
+					if (ImGui::MenuItem("Load Scene"))
+					{
+						menuState_.loadScene = true;
+					}
+					if (ImGui::MenuItem("Reload Shaders"))
+					{
+						menuState_.reloadShaders = true;
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
 			}
-			ImGui::End();
-		}
-
-		ImGui::Begin("Debug");
-
-    menuState_.reloadShaders = ImGui::RadioButton("Reload shaders", true);
-    menuState_.loadScene = ImGui::RadioButton("Load Scene", true);
-
-    ImGui::DragFloat3("Light irradiance", lightingState_.irradiance.data(), 0.1f);
-    ImGui::SliderFloat("Light y rotation", &lightingState_.lightYRotation,
-      static_cast<float>(-M_PI), static_cast<float>(M_PI));
-    ImGui::SliderFloat("Light z rotation", &lightingState_.lightZRotation,
-      static_cast<float>(-M_PI_2), static_cast<float>(M_PI_2));
-
-		{
-			glm::mat4 lightRotation = glm::eulerAngleYZ(
-				lightingState_.lightYRotation,
-				lightingState_.lightZRotation);
-			lightingState_.lightVector = lightRotation * glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
-		
-			const auto& ir = lightingState_.irradiance;
-			Status::UpdateDirectionalLight(lightingState_.lightVector, glm::vec3(ir[0], ir[1], ir[2]));
-		}
-
-    static float globalValue[2];
-    ImGui::DragFloat2("Global scattering, absorption", globalValue, 0.001f, 0.0f, 0.1f);
-    ImGui::DragFloat("Global Phase G", &volumeState_.phaseG, 0.01f, -1.0f, 1.0f);
-    volumeState_.scattering = globalValue[0];
-    volumeState_.absorption = globalValue[1];
-
-		ImGui::SliderFloat("Fog height percentage", &volumeState_.fogHeight, 0.0f, 1.0f);
-		ImGui::SliderFloat("Fog noise scale", &volumeState_.noiseScale, 0.01f, 1.0f);
-
-    static float volumeValues[2];
-    ImGui::DragFloat2("Fog scattering, absorption", volumeValues, 0.001f, 0.0f);
-    ImGui::DragFloat("Fog Phase G", &volumeState_.phaseVolumes, 0.01f, -1.0f, 1.0f);
-    volumeState_.scatteringVolumes = volumeValues[0];
-    volumeState_.absorptionVolumes = volumeValues[1];
-
-		ImGui::DragFloat("Raymarching max depth", &volumeState_.maxDepth, 1.0f, 1.0f, 1000.0f);
-    ImGui::DragInt("Raymarching max steps", &volumeState_.stepCount, 1);
-		ImGui::DragInt("Max Shadow rays per level", &volumeState_.shadowRayPerLevel, 1, 1);
-		ImGui::SliderFloat("Lighting step depth", &volumeState_.lightStepDepth, 1.0f, 200.0f);
-		ImGui::SliderFloat("Jittering scale", &volumeState_.jitteringScale, 0.01f, 1.0f);
-		ImGui::SliderFloat("LOD scale", &volumeState_.lodScale, 0.01f, 32.0f);
-
-		ImGui::SliderInt("Particle count", &particleState_.particleCount, 1, 100);
-		static float radiusValues[] = { particleState_.minParticleRadius, particleState_.maxParticleRadius };
-		ImGui::SliderFloat2("Particle min, max radius", radiusValues, 0.1f, 5.0f);
-		particleState_.minParticleRadius = radiusValues[0];
-		particleState_.maxParticleRadius = radiusValues[1];
-		ImGui::SliderFloat("Particle spawn radius", &particleState_.spawnRadius, 0.2f, 10.0f);
-
-    menuState_.saveConfiguration = ImGui::RadioButton("Save configuration", true);
-		menuState_.exportFogTexture = ImGui::RadioButton("Save fog density texture", true);
-
-		ImGui::Checkbox("Perform time queries", &menuState_.performTimeQueries);
-		menuState_.saveTimeQueries = ImGui::RadioButton("Save time queries", menuState_.performTimeQueries);
-		ImGui::SliderInt("Number of time query frames", &menuState_.queryFrameCount, 1, 300);
-
-    ImGui::Checkbox("Fix Camera Frustum", &menuState_.fixCameraFrustum);
-    ImGui::DragFloat("Shadow map log weight", &lightingState_.shadowLogWeight, 0.01f, 0.0f, 1.0f);
-    ImGui::Text("Application %.4f ms/frame ", deltaTime_ * 1000.0f);
-
-		ImGui::End();
-
-		if (configState_.showDebugVis)
-		{
-			ImGui::Begin("Debug Visualization");
+			
+			ImGui::Spacing();
+			if (ImGui::CollapsingHeader("Debug Visualization"))
 			{
 				ImGui::Checkbox("Render Grid Nodes", &debugVisState_.nodeRendering);
 				int type = debugVisState_.debugFillingType;
-				if (ImGui::Combo("Debug Filling of Volumes", &type, menuNames_debugFilling,
+				ImGui::Text("Debug Filling Type");
+				if (ImGui::Combo("##debugFilling_type", &type, menuNames_debugFilling,
 					DebugVisState::DEBUG_FILL_MAX))
 				{
 					debugVisState_.debugFillingType = static_cast<DebugVisState::DebugFillingType>(type);
-					printf("New Type %s\n", menuNames_debugFilling[type]);
 				}
 			}
-			ImGui::End();
+
+			if (ImGui::CollapsingHeader("Performance"))
+			{
+				ImGui::Text("Application\t%.4f ms/frame ", deltaTime_ * 1000.0f);
+			}
 		}
+		ImGui::End();
+
+    //menuState_.reloadShaders = ImGui::RadioButton("Reload shaders", true);
+    //menuState_.loadScene = ImGui::RadioButton("Load Scene", true);
+		//
+    //ImGui::DragFloat3("Light irradiance", lightingState_.irradiance.data(), 0.1f);
+    //ImGui::SliderFloat("Light y rotation", &lightingState_.lightYRotation,
+    //  static_cast<float>(-M_PI), static_cast<float>(M_PI));
+    //ImGui::SliderFloat("Light z rotation", &lightingState_.lightZRotation,
+    //  static_cast<float>(-M_PI_2), static_cast<float>(M_PI_2));
+		//
+		//{
+		//	glm::mat4 lightRotation = glm::eulerAngleYZ(
+		//		lightingState_.lightYRotation,
+		//		lightingState_.lightZRotation);
+		//	lightingState_.lightVector = lightRotation * glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+		//
+		//	const auto& ir = lightingState_.irradiance;
+		//	Status::UpdateDirectionalLight(lightingState_.lightVector, glm::vec3(ir[0], ir[1], ir[2]));
+		//}
+		//
+    //static float globalValue[2];
+    //ImGui::DragFloat2("Global scattering, absorption", globalValue, 0.001f, 0.0f, 0.1f);
+    //ImGui::DragFloat("Global Phase G", &volumeState_.phaseG, 0.01f, -1.0f, 1.0f);
+    //volumeState_.scattering = globalValue[0];
+    //volumeState_.absorption = globalValue[1];
+		//
+		//ImGui::SliderFloat("Fog height percentage", &volumeState_.fogHeight, 0.0f, 1.0f);
+		//ImGui::SliderFloat("Fog noise scale", &volumeState_.noiseScale, 0.01f, 1.0f);
+		//
+    //static float volumeValues[2];
+    //ImGui::DragFloat2("Fog scattering, absorption", volumeValues, 0.001f, 0.0f);
+    //ImGui::DragFloat("Fog Phase G", &volumeState_.phaseVolumes, 0.01f, -1.0f, 1.0f);
+    //volumeState_.scatteringVolumes = volumeValues[0];
+    //volumeState_.absorptionVolumes = volumeValues[1];
+		//
+		//ImGui::DragFloat("Raymarching max depth", &volumeState_.maxDepth, 1.0f, 1.0f, 1000.0f);
+    //ImGui::DragInt("Raymarching max steps", &volumeState_.stepCount, 1);
+		//ImGui::DragInt("Max Shadow rays per level", &volumeState_.shadowRayPerLevel, 1, 1);
+		//ImGui::SliderFloat("Lighting step depth", &volumeState_.lightStepDepth, 1.0f, 200.0f);
+		//ImGui::SliderFloat("Jittering scale", &volumeState_.jitteringScale, 0.01f, 1.0f);
+		//ImGui::SliderFloat("LOD scale", &volumeState_.lodScale, 0.01f, 32.0f);
+		//
+		//ImGui::SliderInt("Particle count", &particleState_.particleCount, 1, 100);
+		//static float radiusValues[] = { particleState_.minParticleRadius, particleState_.maxParticleRadius };
+		//ImGui::SliderFloat2("Particle min, max radius", radiusValues, 0.1f, 5.0f);
+		//particleState_.minParticleRadius = radiusValues[0];
+		//particleState_.maxParticleRadius = radiusValues[1];
+		//ImGui::SliderFloat("Particle spawn radius", &particleState_.spawnRadius, 0.2f, 10.0f);
+		//
+    //menuState_.saveConfiguration = ImGui::RadioButton("Save configuration", true);
+		//menuState_.exportFogTexture = ImGui::RadioButton("Save fog density texture", true);
+		//
+		//ImGui::Checkbox("Perform time queries", &menuState_.performTimeQueries);
+		//menuState_.saveTimeQueries = ImGui::RadioButton("Save time queries", menuState_.performTimeQueries);
+		//ImGui::SliderInt("Number of time query frames", &menuState_.queryFrameCount, 1, 300);
+		//
+    //ImGui::Checkbox("Fix Camera Frustum", &menuState_.fixCameraFrustum);
+    //ImGui::DragFloat("Shadow map log weight", &lightingState_.shadowLogWeight, 0.01f, 0.0f, 1.0f);
+    
+		//
+		//ImGui::End();
+		//
+		//if (configState_.showDebugVis)
+		//{
+		//	ImGui::Begin("Debug Visualization");
+		//	{
+		//		ImGui::Checkbox("Render Grid Nodes", &debugVisState_.nodeRendering);
+		//		int type = debugVisState_.debugFillingType;
+		//		if (ImGui::Combo("Debug Filling of Volumes", &type, menuNames_debugFilling,
+		//			DebugVisState::DEBUG_FILL_MAX))
+		//		{
+		//			debugVisState_.debugFillingType = static_cast<DebugVisState::DebugFillingType>(type);
+		//			printf("New Type %s\n", menuNames_debugFilling[type]);
+		//		}
+		//	}
+		//	ImGui::End();
+		//}
     ImGui::Render();
 
     const auto device = instance->GetDevice();

@@ -70,6 +70,7 @@ namespace Renderer
 		cbData_.groundFogTexelStart = GridConstants::imageResolution;
 		updated_ = false;
 
+		//Fill volume with global values at each texel
 		const float scattering = volumeState.scattering;
 		const float extinction = scattering + volumeState.absorption;
 		const float phaseG = volumeState.phaseG;
@@ -81,7 +82,7 @@ namespace Renderer
 			updated_ = true;
 		}
 
-		const int texelStart = groundFog->GetCoarseGridTexel();
+		/*const int texelStart = groundFog->GetCoarseGridTexel();
 		if (texelStart != GridConstants::imageResolution - 1 &&
 			(volumeState.scatteringVolumes != 0.0f || volumeState.absorptionVolumes != 0.0f))
 		{
@@ -103,10 +104,12 @@ namespace Renderer
 			cbData_.groundFogTexelStart = texelStart;
 			updated_ = true;
 		}
+		*/
 	}
 
 	void GlobalVolume::Dispatch(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex)
 	{
+		//TODO replace the clear image command with individual clears
 		VkClearColorValue clearValue = { 0.0f, 0.0f, 0.0f, 0.0f};
 		imageManager->Ref_ClearImage(commandBuffer, imageAtlasIndex_, clearValue);
 

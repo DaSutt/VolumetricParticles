@@ -107,7 +107,6 @@ SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos,
 //  sampleData.phaseCount = texValue.x > 0.0f ? sampleData.phaseCount + 1 : sampleData.phaseCount;
 	
   sampleData.accumTexValue = vec3(texValue);
-  //sampleData.accumTexValue = texCoord;
   return sampleData;
 }
 
