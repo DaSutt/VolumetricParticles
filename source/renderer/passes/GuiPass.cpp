@@ -78,14 +78,18 @@ namespace Renderer
     shadowLogWeight{0.5f}
   {}
 
+	GuiPass::TextureValue::TextureValue() :
+		absorption{0.0f},
+		scattering{0.0f},
+		phaseG{0.0f}
+	{}
+
 	GuiPass::VolumeState::VolumeState() :
-		absorption{ 0.0f },
-		scattering{ 0.0f },
+		globalValue{},
 		absorptionVolumes{ 0.0f },
 		scatteringVolumes{ 0.03f },
 		phaseVolumes{-0.4f},
     emission{0.0f, 0.0f, 0.0f},
-    phaseG{-0.4f},
     fogHeight{ 0.0f },
     stepCount { 200 },
 		lightStepDepth{50.0f},
@@ -345,6 +349,20 @@ namespace Renderer
 			}
 			
 			ImGui::Spacing();
+			if (ImGui::CollapsingHeader("Grid Data"))
+			{
+				if (ImGui::TreeNode("Global Data"))
+				{
+					ImGui::DragFloat("Absorption", &volumeState_.globalValue.absorption, 0.00001,
+						0.0f, 1.0f, "%.06f");
+					ImGui::DragFloat("Scattering", &volumeState_.globalValue.scattering, 0.00001,
+						0.0f, 1.0f, "%.06f");
+					ImGui::DragFloat("PhaseG", &volumeState_.globalValue.phaseG, 0.01,
+						-1.0f, 1.0f);
+					ImGui::TreePop();
+				}
+			}
+
 			if (ImGui::CollapsingHeader("Debug Visualization"))
 			{
 				ImGui::Checkbox("Render Grid Nodes", &debugVisState_.nodeRendering);

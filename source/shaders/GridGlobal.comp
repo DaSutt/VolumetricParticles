@@ -43,7 +43,7 @@ void main()
   for(int y = 0; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 texel = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
-    const vec4 value = y > perFrame_.groundFogTexelStart ? groundFogValue : globalValue;
+    const vec4 value = globalValue;
     imageStore(imageAtlas_, texel, value);
   }
 }

@@ -445,9 +445,9 @@ namespace Renderer
 
 		{
 			const auto& volumeState = GuiPass::GetVolumeState();
-			globalMediumData_.scattering = volumeState.scattering;
-			globalMediumData_.extinction = volumeState.absorption + volumeState.scattering;
-			globalMediumData_.phaseG = volumeState.phaseG;
+			globalMediumData_.scattering = volumeState.globalValue.scattering;
+			globalMediumData_.extinction = volumeState.globalValue.absorption + volumeState.globalValue.scattering;
+			globalMediumData_.phaseG = volumeState.globalValue.phaseG;
 
 			raymarchingData_.lodScale_Reciprocal = 1.0f / volumeState.lodScale;
 			raymarchingData_.globalScattering = { globalMediumData_.scattering, globalMediumData_.extinction, globalMediumData_.phaseG, 0.0f };

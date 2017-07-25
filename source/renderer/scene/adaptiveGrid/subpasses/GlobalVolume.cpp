@@ -64,16 +64,16 @@ namespace Renderer
 
 	void GlobalVolume::UpdateCB(GroundFog* groundFog)
 	{
-		const auto& volumeState = GuiPass::GetVolumeState();
+		const auto& globalValue = GuiPass::GetVolumeState().globalValue;
 		cbData_.globalValue = glm::vec4(0);
 		cbData_.groundFogValue = glm::vec4(0);
 		cbData_.groundFogTexelStart = GridConstants::imageResolution;
 		updated_ = false;
 
 		//Fill volume with global values at each texel
-		const float scattering = volumeState.scattering;
-		const float extinction = scattering + volumeState.absorption;
-		const float phaseG = volumeState.phaseG;
+		const float scattering = globalValue.scattering;
+		const float extinction = scattering + globalValue.absorption;
+		const float phaseG = globalValue.phaseG;
 		//No dispatch if volume is not filled with anything
 		if (scattering != 0.0f || extinction != 0.0f)
 		{

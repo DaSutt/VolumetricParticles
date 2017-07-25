@@ -64,12 +64,18 @@ namespace Renderer
       LightingState();
     };
 
+		struct TextureValue
+		{
+			float absorption;
+			float scattering;
+			float phaseG;
+			TextureValue();
+		};
+
     struct VolumeState
     {
+			TextureValue globalValue;
       std::array<float, 3> emission;
-      float absorption;
-      float scattering;
-      float phaseG;
       float absorptionVolumes;
       float scatteringVolumes;
       float phaseVolumes;
