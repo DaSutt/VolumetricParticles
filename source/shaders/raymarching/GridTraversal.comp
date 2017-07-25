@@ -91,7 +91,7 @@ SampleData Accumulate(SampleData sampleData, vec4 newTexValue)
 
 float AveragePhase(float accumPhase, int phaseCount)
 {
-  return accumPhase / float(phaseCount);
+  return accumPhase / max(1.0f, float(phaseCount));
 }
 
 //Calculates the 1D bitindex from the node grid position
