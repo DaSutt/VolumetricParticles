@@ -40,7 +40,7 @@ SOFTWARE.
 
 namespace
 {
-	//Texture to store the density of the fog in world space
+	//True if texture to store the density of the fog in world space should be created
 	constexpr bool createDebugTexture = false;
 
 	constexpr bool debugFilling = false;
@@ -54,10 +54,10 @@ namespace Renderer
 		mediumName_{"groundFogMedium"}
 	{}
 
-	void GroundFog::SetSizes(float cellSize, float gridSize)
+	void GroundFog::SetSizes(float nodeSize, float gridSize)
 	{
-		cellWorldSize_ = cellSize;
-		childCellWorldSize_ = cellSize / static_cast<float>(GridConstants::nodeResolution);
+		nodeWorldSize_ = nodeSize;
+		childCellWorldSize_ = nodeSize / static_cast<float>(GridConstants::nodeResolution);
 		gridWorldSize_ = gridSize;
 		cbData_.texelWorldSize = cellWorldSize_ / GridConstants::nodeResolution;
 		cellBufferSize_ = (GridConstants::nodeResolution * GridConstants::nodeResolution + 1) * sizeof(PerCell);
@@ -65,29 +65,37 @@ namespace Renderer
 
 	void GroundFog::RequestResources(ImageManager* imageManager, BufferManager* bufferManager, int frameCount, int atlasImageIndex)
 	{
-		BufferManager::BufferInfo cbInfo;
-		cbInfo.typeBits = BufferManager::BUFFER_CONSTANT_BIT | BufferManager::BUFFER_SCENE_BIT;
-		cbInfo.pool = BufferManager::MEMORY_CONSTANT;
-		cbInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		cbInfo.bufferingCount = frameCount;
-		cbInfo.data = &cbData_;
-		cbInfo.size = sizeof(CBData);
-		cbIndex_ = bufferManager->Ref_RequestBuffer(cbInfo);
+		//Stores volumetric and fog values for all grid nodes
+		{
+			BufferManager::BufferInfo cbInfo;
+			cbInfo.typeBits = BufferManager::BUFFER_CONSTANT_BIT | BufferManager::BUFFER_SCENE_BIT;
+			cbInfo.pool = BufferManager::MEMORY_CONSTANT;
+			cbInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			cbInfo.bufferingCount = frameCount;
+			cbInfo.data = &cbData_;
+			cbInfo.size = sizeof(CBData);
+			cbIndex_ = bufferManager->Ref_RequestBuffer(cbInfo);
+		}
+		//World space offsets and image offsets for each node
+		{
+			BufferManager::BufferInfo bufferInfo;
+			bufferInfo.typeBits = BufferManager::BUFFER_GRID_BIT;
+			bufferInfo.pool = BufferManager::MEMORY_GRID;
+			bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			bufferInfo.bufferingCount = frameCount;
+			const int nodeResolutionSquared = GridConstants::nodeResolution * GridConstants::nodeResolution;
+			bufferInfo.size = (nodeResolutionSquared) * sizeof(PerNodeData);
+			nodeData_.resize(nodeResolutionSquared);
+			perNodeBuffer_ = bufferManager->Ref_RequestBuffer(bufferInfo);
+		}
 
-		BufferManager::BufferInfo imageIndexInfo;
-		imageIndexInfo.typeBits = BufferManager::BUFFER_GRID_BIT;
-		imageIndexInfo.pool = BufferManager::MEMORY_GRID;
-		imageIndexInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		imageIndexInfo.bufferingCount = frameCount;
-		const int nodeResolutionSquared = GridConstants::nodeResolution * GridConstants::nodeResolution;
-		imageIndexInfo.size = (nodeResolutionSquared + 1) * sizeof(PerCell);
-		cellData_.resize(nodeResolutionSquared + 1);
-		perCellBuffer = bufferManager->Ref_RequestBuffer(imageIndexInfo);
-
+		//Create optional texture to store density of ground fog
+		//Not added to a memory pool instead individual allocation
 		if (createDebugTexture)
 		{
 			ImageManager::Ref_ImageInfo imageInfo{};
 			imageInfo.arrayCount = 1;
+			//Remove the duplicated texels at the edges of neighboring nodes
 			const uint32_t size = GridConstants::nodeResolution * GridConstants::nodeResolution + 1;
 			imageInfo.extent = { size, GridConstants::imageResolution, size };
 			imageInfo.format = VK_FORMAT_R32_SFLOAT;
@@ -108,7 +116,7 @@ namespace Renderer
 	{
 		ShaderBindingManager::BindingInfo bindingInfo = {};
 		bindingInfo.pass = SUBPASS_VOLUME_ADAPTIVE_GROUND_FOG;
-		bindingInfo.resourceIndex = { atlasImageIndex_, cbIndex_, perCellBuffer };
+		bindingInfo.resourceIndex = { atlasImageIndex_, cbIndex_, perNodeBuffer_ };
 		bindingInfo.stages = { VK_SHADER_STAGE_COMPUTE_BIT, VK_SHADER_STAGE_COMPUTE_BIT, VK_SHADER_STAGE_COMPUTE_BIT };
 		bindingInfo.types = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER };
 		bindingInfo.Ref_image = true;
@@ -128,86 +136,85 @@ namespace Renderer
 
 	void GroundFog::UpdateCBData(float heightPercentage, float scattering, float absorption, float phaseG, float noiseScale)
 	{
-		gridSpaceHeight_ = gridWorldSize_ - heightPercentage * gridWorldSize_;
-		gridYPos_ = static_cast<int>(floor(gridSpaceHeight_ / cellWorldSize_));
-		coarseGridPos_ = gridYPos_ + 2;
+		const float gridSpaceHeight = gridWorldSize_ - heightPercentage * gridWorldSize_;
+		gridYPos_ = static_cast<int>(floor(gridSpaceHeight / nodeWorldSize_));
+		coarseTexelPosition_ = gridYPos_ + 2;
 
 		cbData_.scattering = scattering;
 		cbData_.absorption = absorption + scattering;
 		cbData_.phaseG = phaseG;
 
-		const float cellSpaceHeight = gridSpaceHeight_ - gridYPos_ * cellWorldSize_;
-		const float cellPercentage = 1.0f - cellSpaceHeight / cellWorldSize_;
-		const float cellSpaceOffset = GridConstants::imageResolution * cellSpaceHeight / cellWorldSize_;
+		const float cellSpaceHeight = gridSpaceHeight - gridYPos_ * nodeWorldSize_;
+		const float cellPercentage = 1.0f - cellSpaceHeight / nodeWorldSize_;
+		const float cellSpaceOffset = GridConstants::imageResolution * cellSpaceHeight / nodeWorldSize_;
 		cbData_.edgeTexelY = static_cast<int>(floor(cellSpaceOffset));
 		cbData_.cellFraction = (cbData_.edgeTexelY * childCellWorldSize_ - cellSpaceHeight) / childCellWorldSize_;
 
 		cbData_.noiseScale = noiseScale;
+
+		//Only add ground fog if a certain percentage is covered
+		active_ = heightPercentage > 0.0f;
 	}
 
 	void GroundFog::UpdateGridCells(GridLevel* gridLevel)
 	{
-		if (gridSpaceHeight_ == 512.0f)
+		if (active_)
 		{
-			//Skip adding cells if no ground fog used
-			return;
-		}
+			nodeIndices_.clear();
 
-		nodeIndices_.clear();
-		if (debugFilling)
-		{
-			for (size_t z = debugStart.y; z < debugEnd.y; ++z)
+			if (debugFilling)
 			{
-				for (size_t x = debugStart.x; x < debugEnd.x; ++x)
+				//Only fill parts of the grid at a height of gridYPos_
+				for (size_t z = debugStart.y; z < debugEnd.y; ++z)
 				{
-					glm::vec3 gridPos = glm::vec3(x, gridYPos_, z) * gridLevel->GetGridCellSize();
-					nodeIndices_.push_back(gridLevel->AddNode(gridPos));
+					for (size_t x = debugStart.x; x < debugEnd.x; ++x)
+					{
+						glm::vec3 gridPos = glm::vec3(x, gridYPos_, z) * gridLevel->GetGridCellSize();
+						nodeIndices_.push_back(gridLevel->AddNode(gridPos));
+					}
 				}
 			}
-		}
-		else
-		{
-			for (size_t z = 0; z < GridConstants::nodeResolution; ++z)
+			else
 			{
-				for (size_t x = 0; x < GridConstants::nodeResolution; ++x)
+				for (size_t z = 0; z < GridConstants::nodeResolution; ++z)
 				{
-					glm::vec3 gridPos = glm::vec3(x, gridYPos_, z) * gridLevel->GetGridCellSize();
-					nodeIndices_.push_back(gridLevel->AddNode(gridPos));
+					for (size_t x = 0; x < GridConstants::nodeResolution; ++x)
+					{
+						glm::vec3 gridPos = glm::vec3(x, gridYPos_, z) * gridLevel->GetGridCellSize();
+						nodeIndices_.push_back(gridLevel->AddNode(gridPos));
+					}
 				}
 			}
-		}
+		}	
 	}
 
-	void GroundFog::UpdatePerCellBuffer(BufferManager* bufferManager, GridLevel* gridLevel, int frameIndex, int atlasResolution)
+	void GroundFog::UpdatePerNodeBuffer(BufferManager* bufferManager, GridLevel* gridLevel, int frameIndex, int atlasResolution)
 	{
-		if (gridSpaceHeight_ == 512.0f)
+		if (active_)
 		{
-			dispatchCount_ = 0;
-			return;
+			auto bufferDataPtr = bufferManager->Ref_Map(perNodeBuffer_, frameIndex, BufferManager::BUFFER_GRID_BIT);
+
+			nodeData_.clear();
+			//TODO check if these values are correct or the same as grid world size
+			const float cellSize = gridLevel->GetGridCellSize();
+			const float cellOffset = cellSize / gridLevel->gridResolution_ * 0.5f;
+
+			const auto& gridNodeData = gridLevel->GetNodeData();
+			const auto& nodeInfos = gridNodeData.GetNodeInfos();
+			const auto& nodePos = gridNodeData.gridPos_;
+			for (const auto indexNode : nodeIndices_)
+			{
+				PerNodeData nodeData;
+				nodeData.imageOffset = nodeInfos[indexNode].textureOffset;
+				nodeData.worldOffset = nodePos[indexNode] * cellSize;
+				nodeData_.push_back(nodeData);
+			}
+
+			dispatchCount_ = static_cast<int>(nodeData_.size());
+
+			memcpy(bufferDataPtr, nodeData_.data(), nodeData_.size() * sizeof(PerNodeData));
+			bufferManager->Ref_Unmap(perNodeBuffer_, frameIndex, BufferManager::BUFFER_GRID_BIT);
 		}
-
-		auto bufferDataPtr = bufferManager->Ref_Map(perCellBuffer, frameIndex, BufferManager::BUFFER_GRID_BIT);
-
-		//TODO: calculate image offsets
-		cellData_.clear();
-		const float cellSize = gridLevel->GetGridCellSize();
-		const float cellOffset = cellSize / gridLevel->gridResolution_ * 0.5f;
-
-		const auto& nodeData = gridLevel->GetNodeData();
-		for (const auto indexNode : nodeIndices_)
-		{
-			const glm::ivec3 imageOffset = nodeData.imageInfos_[indexNode].image + 1;
-
-			PerCell perCell;
-			perCell.imageOffset = NodeData::PackTextureOffset(imageOffset);
-			perCell.worldOffset = nodeData.gridPos_[indexNode] * cellSize;
-			cellData_.push_back(perCell);
-		}
-
-		dispatchCount_ = static_cast<int>(cellData_.size());
-
-		memcpy(bufferDataPtr, cellData_.data(), cellData_.size() * sizeof(PerCell));
-		bufferManager->Ref_Unmap(perCellBuffer, frameIndex, BufferManager::BUFFER_GRID_BIT);
 	}
 
 	void GroundFog::Dispatch(QueueManager* queueManager, ImageManager* imageManager, 
@@ -219,7 +226,7 @@ namespace Renderer
 			imageManager->Ref_ClearImage(commandBuffer, debugTextureIndex_, clearValue);
 		}
 
-		if (dispatchCount_ > 0)
+		if (active_ && dispatchCount_ > 0)
 		{
 			auto& queryPool = Wrapper::QueryPool::GetInstance();
 			queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);

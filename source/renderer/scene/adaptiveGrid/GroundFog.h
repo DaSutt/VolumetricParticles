@@ -43,64 +43,83 @@ namespace Renderer
 	{
 	public:
 		GroundFog();
-		void SetSizes(float cellSize, float gridSize);
+		//Calculate the dimensions of the ground data based on the current grid size
+		void SetSizes(float nodeSize, float gridSize);
+		
+		//Resources:
+		//	- Constant buffer with volumetric values and fog variables
+		//	- Constant buffer with world offsets + image offsets per node
+		//	- Optional: 3D texture covering the whole ground fog in world space
 		void RequestResources(ImageManager* imageManager, BufferManager* bufferManager, int frameCount, int atlasImageIndex);
+		//Bindings:
+		//	- In: Volumetric, ground fog data CB
+		//	- In: Per node world, image offsets
+		//	- Out: Image atlas as storage image
+		//	- Out: Optional debug texture storage image
 		int GetShaderBinding(ShaderBindingManager* bindingManager, int frameCount);
-
+		
+		//Calculate which nodes are covered by the ground fog
 		void UpdateCBData(float heightPercentage, float scattering, float absorption, float phaseG, float noiseScale);
-		//Inserts needed grid cells into grid level 1
+		//Inserts needed grid cells into the medium scale grid level
 		void UpdateGridCells(GridLevel* gridLevel);
 		//Needs to be called after the image indices for the grid are computed
-		void UpdatePerCellBuffer(BufferManager* bufferManager, GridLevel* gridLevel, int frameIndex, int atlasResolution);
-		void Dispatch(QueueManager* queueManager, ImageManager* imageManager, 
-			BufferManager* bufferManager, VkCommandBuffer commandBuffer, int frameIndex);
+		//Stores the world offsets and image offset for each node
+		void UpdatePerNodeBuffer(BufferManager* bufferManager, GridLevel* gridLevel, int frameIndex, int atlasResolution);
 		
-		int GetPerCellBufferIndex() const { return perCellBuffer; }
-		int GetPerCellBufferSize() const { return cellBufferSize_; }
-		int GetCoarseGridTexel() const { return coarseGridPos_; }
+		//void Dispatch(QueueManager* queueManager, ImageManager* imageManager, 
+		//	BufferManager* bufferManager, VkCommandBuffer commandBuffer, int frameIndex);
+		//
+		//int GetPerCellBufferIndex() const { return perCellBuffer; }
+		//int GetPerCellBufferSize() const { return cellBufferSize_; }
+		//int GetCoarseGridTexel() const { return coarseGridPos_; }
 	private:
 		struct CBData
 		{
 			float scattering;
 			float absorption;
 			float phaseG;
+			float noiseScale;
 			float cellFraction;		//amount that the edge texel is covered
 			int edgeTexelY;				//texel at which the height fog stops
-			float texelWorldSize;
-			float noiseScale;
+		//	float texelWorldSize;
 		};
-
-		struct PerCell
+		
+		struct PerNodeData
 		{
 			glm::vec3 worldOffset;
-			uint32_t imageOffset;		//x,y,z values 10 bit set last bit if coarser detail should be filled
+			uint32_t imageOffset;		//x,y,z values 10 bit 
 		};
-
-		void ExportGroundFogTexture(QueueManager* queueManager, ImageManager* imageManager, BufferManager* bufferManager);
-		void SaveTextureData(void* dataPtr, VkDeviceSize imageSize, const VkExtent3D& imageExtent);
-
-		int cellBufferSize_;
-		float cellWorldSize_;
+		//
+		//void ExportGroundFogTexture(QueueManager* queueManager, ImageManager* imageManager, BufferManager* bufferManager);
+		//void SaveTextureData(void* dataPtr, VkDeviceSize imageSize, const VkExtent3D& imageExtent);
+		//
+		//int cellBufferSize_;
+		
+		//TODO check value
 		float childCellWorldSize_;
-		float gridWorldSize_;
-
-		float gridSpaceHeight_ = 0.0f;
+		
+		//TODO check value
+		float gridWorldSize_ = 0.0f;
+		float nodeWorldSize_ = 0.0f;
+		bool active_ = false;
+		//Node position inside the grid
 		int gridYPos_ = 15;
-		int coarseGridPos_ = 15;
+		int coarseTexelPosition_ = 15;
 		int dispatchCount_ = 0;
-
+				
 		CBData cbData_;
-		std::vector<PerCell> cellData_;
-
+		std::vector<PerNodeData> nodeData_;
+		//Indices of the nodes inside the grid level
 		std::vector<int> nodeIndices_;
-
+		
+		
 		int cbIndex_ = -1;
-		int perCellBuffer = -1;
+		int perNodeBuffer_ = -1;
 		int atlasImageIndex_ = -1;
-
 		//Used for storing the density of the ground fog in world space
 		int debugTextureIndex_ = -1;
-
-		const std::string mediumName_;
+		//
+		//
+		//const std::string mediumName_;
 	};
 }

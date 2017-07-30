@@ -457,9 +457,9 @@ namespace Renderer
 			raymarchingData_.exponentialScale = log(volumeState.maxDepth);
 
 			//TODO check why these values are double
-			volumeMediaData_.scattering = volumeState.scatteringVolumes;
-			volumeMediaData_.extinction = volumeState.absorptionVolumes + volumeState.scatteringVolumes;
-			volumeMediaData_.phaseG = volumeState.phaseVolumes;
+			volumeMediaData_.scattering = volumeState.groundFogValue.scattering;
+			volumeMediaData_.extinction = volumeState.groundFogValue.absorption + volumeState.groundFogValue.scattering;
+			volumeMediaData_.phaseG = volumeState.groundFogValue.phaseG;
 			
 			if (volumeState.debugTraversal)
 			{
@@ -467,11 +467,11 @@ namespace Renderer
 				DebugData::levelData_.data = gridLevelData_;
 			}
 
-			groundFog_.UpdateCBData(volumeState.fogHeight,
-				volumeState.scatteringVolumes,
-				volumeState.absorptionVolumes,
-				volumeState.phaseVolumes,
-				volumeState.noiseScale);
+			groundFog_.UpdateCBData(volumeState.groundFogHeight,
+				volumeState.groundFogValue.scattering,
+				volumeState.groundFogValue.absorption,
+				volumeState.groundFogValue.phaseG,
+				volumeState.groundFogNoiseScale);
 			globalVolume_.UpdateCB(&groundFog_);
 
 			for (auto& levelData : gridLevelData_)

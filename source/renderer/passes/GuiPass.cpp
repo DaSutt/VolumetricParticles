@@ -76,7 +76,12 @@ namespace Renderer
     lightYRotation{ 0.87f },
     lightZRotation{ 0.67f },
     shadowLogWeight{0.5f}
-  {}
+  {
+		glm::mat4 lightRotation = glm::eulerAngleYZ(
+			lightingState_.lightYRotation,
+			lightingState_.lightZRotation);
+		lightingState_.lightVector = lightRotation * glm::vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+	}
 
 	GuiPass::TextureValue::TextureValue() :
 		absorption{0.0f},
@@ -86,16 +91,15 @@ namespace Renderer
 
 	GuiPass::VolumeState::VolumeState() :
 		globalValue{},
-		absorptionVolumes{ 0.0f },
-		scatteringVolumes{ 0.03f },
-		phaseVolumes{-0.4f},
-    emission{0.0f, 0.0f, 0.0f},
-    fogHeight{ 0.0f },
-    stepCount { 200 },
+
+		groundFogHeight{0.0f},
+		groundFogValue{},
+		groundFogNoiseScale{0.1f},
+
+		stepCount { 200 },
 		lightStepDepth{50.0f},
 		jitteringScale { 0.2f },
 		lodScale { 1.0f },
-		noiseScale { 0.1f },
 		minTransmittance{0.0f},
 		maxDepth{ 500.0f},
 		shadowRayPerLevel{16}
@@ -377,12 +381,25 @@ namespace Renderer
 			{
 				if (ImGui::TreeNode("Global Data"))
 				{
-					ImGui::DragFloat("Absorption", &volumeState_.globalValue.absorption, 0.00001,
+					ImGui::DragFloat("Absorption", &volumeState_.globalValue.absorption, 0.00001f,
 						0.0f, 1.0f, "%.06f");
-					ImGui::DragFloat("Scattering", &volumeState_.globalValue.scattering, 0.00001,
+					ImGui::DragFloat("Scattering", &volumeState_.globalValue.scattering, 0.00001f,
 						0.0f, 1.0f, "%.06f");
-					ImGui::DragFloat("PhaseG", &volumeState_.globalValue.phaseG, 0.01,
+					ImGui::DragFloat("PhaseG", &volumeState_.globalValue.phaseG, 0.01f,
 						-1.0f, 1.0f);
+					ImGui::TreePop();
+				}
+				if (ImGui::TreeNode("Ground Fog Data"))
+				{
+					ImGui::DragFloat("Absorption", &volumeState_.groundFogValue.absorption, 0.00001f,
+						0.0f, 1.0f, "%.06f");
+					ImGui::DragFloat("Scattering", &volumeState_.groundFogValue.scattering, 0.00001f,
+						0.0f, 1.0f, "%.06f");
+					ImGui::DragFloat("PhaseG", &volumeState_.groundFogValue.phaseG, 0.01f,
+						-1.0f, 1.0f);
+
+					ImGui::DragFloat("Height Percentage", &volumeState_.groundFogHeight, 0.001f, 0.0f, 1.0f);
+					ImGui::DragFloat("Noise scale", &volumeState_.groundFogNoiseScale, 0.001f, 0.0001f, 1.0f);
 					ImGui::TreePop();
 				}
 			}
@@ -414,16 +431,7 @@ namespace Renderer
     //ImGui::DragFloat("Global Phase G", &volumeState_.phaseG, 0.01f, -1.0f, 1.0f);
     //volumeState_.scattering = globalValue[0];
     //volumeState_.absorption = globalValue[1];
-		//
-		//ImGui::SliderFloat("Fog height percentage", &volumeState_.fogHeight, 0.0f, 1.0f);
-		//ImGui::SliderFloat("Fog noise scale", &volumeState_.noiseScale, 0.01f, 1.0f);
-		//
-    //static float volumeValues[2];
-    //ImGui::DragFloat2("Fog scattering, absorption", volumeValues, 0.001f, 0.0f);
-    //ImGui::DragFloat("Fog Phase G", &volumeState_.phaseVolumes, 0.01f, -1.0f, 1.0f);
-    //volumeState_.scatteringVolumes = volumeValues[0];
-    //volumeState_.absorptionVolumes = volumeValues[1];
-		//
+		
 		//ImGui::DragFloat("Raymarching max depth", &volumeState_.maxDepth, 1.0f, 1.0f, 1000.0f);
     //ImGui::DragInt("Raymarching max steps", &volumeState_.stepCount, 1);
 		//ImGui::DragInt("Max Shadow rays per level", &volumeState_.shadowRayPerLevel, 1, 1);

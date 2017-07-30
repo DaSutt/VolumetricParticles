@@ -133,7 +133,7 @@ namespace Renderer
   {
     const auto& volumeState = GuiPass::GetVolumeState();
 
-    const float fogHeight = volumeState.fogHeight;
+    const float fogHeight = volumeState.groundFogHeight;
 
     const int centerCell = static_cast<int>((-scene->GetGrid()->GetMin().y) / scene->GetGrid()->GetCellSize().y);
     mediaData_.fogHeight = (1.0f - fogHeight) * scene->GetGrid()->GetResolution().y;

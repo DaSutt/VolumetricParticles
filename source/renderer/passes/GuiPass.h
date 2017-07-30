@@ -75,18 +75,17 @@ namespace Renderer
     struct VolumeState
     {
 			TextureValue globalValue;
-      std::array<float, 3> emission;
-      float absorptionVolumes;
-      float scatteringVolumes;
-      float phaseVolumes;
-      float fogHeight;
+
+			float groundFogHeight;
+			TextureValue groundFogValue;
+			float groundFogNoiseScale;
+
 			float jitteringScale;
       int stepCount;
 			float lightStepDepth;
 			bool debugTraversal;
 			glm::vec2 cursorPosition;
 			float lodScale;
-			float noiseScale;
 			float minTransmittance;
 			float maxDepth;
 			int shadowRayPerLevel;

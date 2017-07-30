@@ -34,21 +34,28 @@ namespace Renderer
 	class GroundFog;
 	class BufferManager;
 
-	//Fills the top level with specified values
+	//Fills the coarsest level of the volumetric grid with uniform values
 	class GlobalVolume
 	{
 	public:
+		//Request the constant buffer with the volumetric values
 		void RequestResources(BufferManager* bufferManager, int frameCount, int atlasImageIndex);
+		//Bindings:
+		//	- In: Volumetric data constant buffer
+		//	- Out: Image Atlas as storage image
 		int GetShaderBinding(ShaderBindingManager* bindingManager, int frameCount);
 
+		//Update the volumetric values for the whole scene
 		void UpdateCB(GroundFog* groundFog);
+		//TODO: remove clearing of image atlas
+		//TODO: only dispatch if values have changed
 		void Dispatch(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex);
 	private:
 		struct CBData
 		{
-			glm::vec4 globalValue;
-			glm::vec3 groundFogValue;
-			int groundFogTexelStart;
+			glm::vec4 globalValue;		//Uniform data for the whole scene
+			glm::vec3 groundFogValue; //Uniform data below the interface of the ground fog
+			int groundFogTexelStart;	
 		};
 		CBData cbData_;
 
