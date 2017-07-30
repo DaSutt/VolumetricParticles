@@ -162,6 +162,7 @@ GridStatus TraverseGrid(const vec3 gridSpacePos, int maxLevel, float mipMapWeigh
   vec3 gridOffset = vec3(0.0f);
   SampleData sampleData;
   sampleData.accumTexValue = vec3(0.0f);
+  sampleData.phaseCount = 0;
 
   //Sample on the root level
   bool mipMapping = mipMapWeight > 0.0f && maxLevel == 0;

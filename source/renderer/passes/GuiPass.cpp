@@ -353,8 +353,8 @@ namespace Renderer
 			if (ImGui::CollapsingHeader("Lighting"))
 			{
 				static float color[3] = { 1.0f, 1.0f, 1.0f };
-				ImGui::Text("Directional Light Color");
-				ImGui::ColorEdit3("##lightColor_Dir", color);
+				ImGui::Text("Directional Light");
+				ImGui::ColorEdit3("Color", color);
 				static float irradiance = 1.0f;
 				ImGui::DragFloat("Irradiance", &irradiance, 0.1f, 0.0f, 10.0f);
 				lightingState_.irradiance = { irradiance * color[0], irradiance * color[1], irradiance * color[2] };
