@@ -28,6 +28,8 @@ SOFTWARE.
 #include <glm\glm.hpp>
 #include <vulkan\vulkan.h>
 
+#include "AdaptiveGridData.h"
+
 namespace Renderer
 {
 	class GridLevel;
@@ -65,13 +67,12 @@ namespace Renderer
 		//Needs to be called after the image indices for the grid are computed
 		//Stores the world offsets and image offset for each node
 		void UpdatePerNodeBuffer(BufferManager* bufferManager, GridLevel* gridLevel, int frameIndex, int atlasResolution);
-		
-		//void Dispatch(QueueManager* queueManager, ImageManager* imageManager, 
-		//	BufferManager* bufferManager, VkCommandBuffer commandBuffer, int frameIndex);
-		//
-		//int GetPerCellBufferIndex() const { return perCellBuffer; }
-		//int GetPerCellBufferSize() const { return cellBufferSize_; }
-		//int GetCoarseGridTexel() const { return coarseGridPos_; }
+		bool ResizeGPUResources(std::vector<ResourceResize>& resourceResizes);
+
+		//Fills the ground fog with volumetric data based on 3D noise density
+		//If a debug texture is to be created it is filled and exported
+		void Dispatch(QueueManager* queueManager, ImageManager* imageManager, 
+			BufferManager* bufferManager, VkCommandBuffer commandBuffer, int frameIndex);
 	private:
 		struct CBData
 		{
@@ -89,11 +90,11 @@ namespace Renderer
 			glm::vec3 worldOffset;
 			uint32_t imageOffset;		//x,y,z values 10 bit 
 		};
-		//
-		//void ExportGroundFogTexture(QueueManager* queueManager, ImageManager* imageManager, BufferManager* bufferManager);
-		//void SaveTextureData(void* dataPtr, VkDeviceSize imageSize, const VkExtent3D& imageExtent);
-		//
-		//int cellBufferSize_;
+		
+		//Copy the ground fog density texture from GPU to CPU
+		void ExportGroundFogTexture(QueueManager* queueManager, ImageManager* imageManager, BufferManager* bufferManager);
+		//Save in PBRT file format
+		void SaveTextureData(void* dataPtr, VkDeviceSize imageSize, const VkExtent3D& imageExtent);
 		
 		//TODO check value
 		float childCellWorldSize_;
@@ -109,6 +110,7 @@ namespace Renderer
 				
 		CBData cbData_;
 		std::vector<PerNodeData> nodeData_;
+		size_t nodeDataSize_ = 0;
 		//Indices of the nodes inside the grid level
 		std::vector<int> nodeIndices_;
 		
@@ -118,8 +120,5 @@ namespace Renderer
 		int atlasImageIndex_ = -1;
 		//Used for storing the density of the ground fog in world space
 		int debugTextureIndex_ = -1;
-		//
-		//
-		//const std::string mediumName_;
 	};
 }

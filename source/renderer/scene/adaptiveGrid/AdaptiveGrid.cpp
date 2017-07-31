@@ -592,7 +592,7 @@ namespace Renderer
 			resourceResizes.push_back({ maxSize, gpuResources_[i].index });
 		}
 
-		resourceResizes.push_back({ static_cast<VkDeviceSize>(groundFog_.GetPerCellBufferSize()), groundFog_.GetPerCellBufferIndex() });
+		resize = groundFog_.ResizeGPUResources(resourceResizes) ? true : resize;
 		resize = particleSystems_.ResizeGpuResources(resourceResizes) ? true : resize;
 		resize = mipMapping_.ResizeGpuResources(imageManager, resourceResizes) ? true : resize;
 		resize = neighborCells_.ResizeGpuResources(resourceResizes) ? true : resize;
@@ -682,7 +682,7 @@ namespace Renderer
 			bufferManager->Ref_Unmap(gpuResources_[i].index, frameIndex, BufferManager::BUFFER_GRID_BIT);
 		}
 
-		groundFog_.UpdatePerCellBuffer(bufferManager, &gridLevels_[1], frameIndex, imageAtlas_.GetSideLength());
+		groundFog_.UpdatePerNodeBuffer(bufferManager, &gridLevels_[1], frameIndex, imageAtlas_.GetSideLength());
 		particleSystems_.UpdateGpuResources(bufferManager, frameIndex);
 		mipMapping_.UpdateGpuResources(bufferManager, frameIndex);
 		neighborCells_.UpdateGpuResources(bufferManager, frameIndex);

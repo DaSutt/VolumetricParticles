@@ -46,12 +46,12 @@ namespace
 	constexpr bool debugFilling = false;
 	const glm::ivec2 debugStart = glm::ivec2(GridConstants::nodeResolution / 2);
 	const glm::ivec2 debugEnd = debugStart + glm::ivec2(1,1);
+	const char* mediumName = "groundFogMedium";
 }
 
 namespace Renderer
 {
-	GroundFog::GroundFog() :
-		mediumName_{"groundFogMedium"}
+	GroundFog::GroundFog()
 	{}
 
 	void GroundFog::SetSizes(float nodeSize, float gridSize)
@@ -59,8 +59,8 @@ namespace Renderer
 		nodeWorldSize_ = nodeSize;
 		childCellWorldSize_ = nodeSize / static_cast<float>(GridConstants::nodeResolution);
 		gridWorldSize_ = gridSize;
-		cbData_.texelWorldSize = cellWorldSize_ / GridConstants::nodeResolution;
-		cellBufferSize_ = (GridConstants::nodeResolution * GridConstants::nodeResolution + 1) * sizeof(PerCell);
+		//cbData_.texelWorldSize = cellWorldSize_ / GridConstants::nodeResolution;
+		//cellBufferSize_ = (GridConstants::nodeResolution * GridConstants::nodeResolution + 1) * sizeof(PerCell);
 	}
 
 	void GroundFog::RequestResources(ImageManager* imageManager, BufferManager* bufferManager, int frameCount, int atlasImageIndex)
@@ -217,6 +217,18 @@ namespace Renderer
 		}
 	}
 
+	bool GroundFog::ResizeGPUResources(std::vector<ResourceResize>& resourceResizes)
+	{
+		const size_t newSize = nodeData_.size() * sizeof(NodeData);
+		const bool resize = nodeDataSize_ < newSize;
+		if (resize)
+		{
+			nodeDataSize_ = newSize;
+		}
+		resourceResizes.push_back({ nodeDataSize_, perNodeBuffer_ });
+		return resize;
+	}
+
 	void GroundFog::Dispatch(QueueManager* queueManager, ImageManager* imageManager, 
 		BufferManager* bufferManager, VkCommandBuffer commandBuffer, int frameIndex)
 	{
@@ -228,12 +240,12 @@ namespace Renderer
 
 		if (active_ && dispatchCount_ > 0)
 		{
-			auto& queryPool = Wrapper::QueryPool::GetInstance();
-			queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);
-
-			vkCmdDispatch(commandBuffer, dispatchCount_, 1, 1);
-
-			queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);
+			//auto& queryPool = Wrapper::QueryPool::GetInstance();
+			//queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);
+			//
+			//vkCmdDispatch(commandBuffer, dispatchCount_, 1, 1);
+			//
+			//queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);
 		}
 		
 		if (createDebugTexture && GuiPass::GetMenuState().exportFogTexture)
@@ -246,6 +258,7 @@ namespace Renderer
 	{
 		vkQueueWaitIdle(queueManager->GetQueue(QueueManager::QUEUE_COMPUTE));
 
+		//Temporary buffer to store the image
 		BufferManager::BufferInfo bufferInfo;
 		bufferInfo.bufferingCount = 1;
 		bufferInfo.pool = BufferManager::MEMORY_TEMP;
@@ -312,7 +325,7 @@ namespace Renderer
 						
 			file <<
 				"\nAttributeBegin" <<
-				"\nMakeNamedMedium \"" << mediumName_ << "\"" <<
+				"\nMakeNamedMedium \"" << mediumName << "\"" <<
 				"\n\t\"string type\" \"heterogeneous\"" <<
 				"\n\t\"rgb	sigma_a\" [" << s_a << " " << s_a << " " << s_a << "]" <<
 				"\n\t\"rgb sigma_s\" [" << s_s << " " << s_s << " " << s_s << "]" <<
@@ -339,7 +352,7 @@ namespace Renderer
 
 			const float yOffset = maxTexturePos.y - cellSize * 0.5f;
 			
-			Status::UpdateGroundFog(fileName, mediumName_, scale, yOffset);
+			Status::UpdateGroundFog(fileName, mediumName, scale, yOffset);
 		}
 	}
 }
