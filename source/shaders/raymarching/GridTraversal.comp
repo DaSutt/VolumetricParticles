@@ -30,6 +30,7 @@ SOFTWARE.
 #include "GridConstants.comp"
 
 const int MAX_LEVELS = 3;
+const bool DEBUG_RETURN_TEXEL_VALUE = false;
 
 struct GridStatus
 {
@@ -115,8 +116,11 @@ SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos,
   const vec4 texValue = texture(textureAtlas_, texCoord);
   
   sampleData = Accumulate(sampleData, texValue);
-  sampleData.accumTexValue = vec3(texValue);
-  sampleData.phaseCount = 1;
+  if(DEBUG_RETURN_TEXEL_VALUE)
+  {
+    sampleData.accumTexValue = vec3(texValue);
+    sampleData.phaseCount = 1;
+  }
 	return sampleData;
 }
 

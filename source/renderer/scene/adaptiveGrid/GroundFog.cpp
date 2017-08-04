@@ -43,9 +43,9 @@ namespace
 	//True if texture to store the density of the fog in world space should be created
 	constexpr bool createDebugTexture = false;
 
-	constexpr bool debugFilling = true;
+	constexpr bool debugFilling = false;
 	const glm::ivec2 debugStart = glm::ivec2(GridConstants::nodeResolution / 2);
-	const glm::ivec2 debugEnd = debugStart + glm::ivec2(1,1);
+	const glm::ivec2 debugEnd = debugStart + glm::ivec2(2,1);
 	const char* mediumName = "groundFogMedium";
 }
 
@@ -59,7 +59,7 @@ namespace Renderer
 		nodeWorldSize_ = nodeSize;
 		childCellWorldSize_ = nodeSize / static_cast<float>(GridConstants::nodeResolution);
 		gridWorldSize_ = gridSize;
-		//cbData_.texelWorldSize = cellWorldSize_ / GridConstants::nodeResolution;
+		cbData_.texelWorldSize = nodeSize / GridConstants::nodeResolution;
 		//cellBufferSize_ = (GridConstants::nodeResolution * GridConstants::nodeResolution + 1) * sizeof(PerCell);
 	}
 

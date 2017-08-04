@@ -28,6 +28,9 @@ SOFTWARE.
 #include "GridTraversal.comp"
 #include "Integration.comp"
 
+const bool DEBUG_STOP_AT_LEVEL = false;
+const int DEBUG_LEVEL = 1;
+
 vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction, 
   const float maxDepth)
 {
@@ -68,16 +71,14 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     
     accumScatteringTransmittance = IntegrateScatteringTransmittance(
       accumScatteringTransmittance, status.accumTexValue, direction, 1.0f, stepData.x);
-    if(status.currentLevel == 1)
+    if(DEBUG_STOP_AT_LEVEL)
     {
-      return status.accumTexValue;
+      if(status.currentLevel == DEBUG_LEVEL)
+      {
+        return status.accumTexValue;
+      }
     }
-    //if(status.currentLevel > maxLevel)
-    //{
-    //  maxLevel = status.currentLevel;
-    //  accumScatteringTransmittance = status.accumTexValue;
-    //}
-        
+            
     //Check for early termination through geometry
     if(stepData.x >= maxDepth)
     {

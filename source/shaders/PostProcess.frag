@@ -25,6 +25,7 @@ SOFTWARE.
 #version 450
 
 const int DEBUG_SCREEN_DIVISION = 2;
+const bool DEBUG_RETURN_IMAGE_ATLAS = false;
 
 layout(location = 0) out vec4 outColor;
 
@@ -57,6 +58,10 @@ void main()
 	vec3 finalColor = opaqueColor.xyz * raymarchingResults.a + raymarchingResults.xyz;
 	finalColor = pow(finalColor, vec3(1.0 / 2.2));
 	finalColor += noise.rgb / 255.0;
-	outColor = vec4(raymarchingResults.xyz,  1.0f);
-	//outColor = vec4(finalColor, 1.0f);
+  outColor = vec4(finalColor, 1.0f);
+  
+  if(DEBUG_RETURN_IMAGE_ATLAS)
+  {
+    outColor = vec4(raymarchingResults.xyz,  1.0f);
+	}
 }

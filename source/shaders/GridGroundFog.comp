@@ -38,10 +38,11 @@ layout(set = 0, binding = 1) uniform cbData
   float scattering;
   float absorption;
   float phaseG;
-  float cellFraction;
-  int edgeTexelY;
+  
   float texelWorldSize;
-  float noiseScale;
+	float noiseScale;
+	float cellFraction;		//amount that the edge texel is covered
+	int edgeTexelY;				//texel at which the height fog stops
 } cb_;
 
 struct BufferElement
@@ -96,32 +97,28 @@ void main()
   const int bufferOffset = int(gl_WorkGroupID.x);
   BufferElement curr = perCell_.data[bufferOffset];
   
-  //const vec4 fogValue = vec4(cb_.scattering, cb_.absorption, cb_.phaseG, 0.0);
-  //
+  const vec4 fogValue = vec4(cb_.scattering, cb_.absorption, 0.0, 0.0);
   const ivec3 imageOffset = UnpackImageOffset_I(curr.imageOffset) * IMAGE_RESOLUTION;
-  //bool edgeValue = true;
-  for(int y = 0; y < IMAGE_RESOLUTION; ++y)
+  
+  bool edgeValue = true;
+  for(int y = cb_.edgeTexelY; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
     const ivec3 texelPosition = imageOffset + offset;
     
     imageStore(imageAtlas_, texelPosition, vec4(1,0,0,0));
-  //  const vec3 worldTexelPosition = curr.worldOffset + offset * cb_.texelWorldSize;
-  //  const float density = (snoise(worldTexelPosition * cb_.noiseScale) + 1.0f) * 0.5f;
-  //  
-  //  vec4 currValue = density * fogValue;
-  //  currValue = edgeValue ? currValue * cb_.cellFraction : currValue;
-  //  //imageStore(imageAtlas_, texelPosition, currValue);
-  //  
-  //  //if(offset.x > 5)
-  //  //{
-  //    //imageStore(imageAtlas_, texelPosition, vec4(1.0, 0.0, 0.0, 0.0));
-  //  //}
-  //  //else
-  //  //{
-  //    //imageStore(imageAtlas_, texelPosition, vec4(0,0,0,0));
-  //  //}
-  //  
-  //  edgeValue = false;
+    
+    //Calculate density based on world space position in the range [0,1]
+    const vec3 worldTexelPosition = curr.worldOffset + offset * cb_.texelWorldSize;
+    const float density = (snoise(worldTexelPosition * cb_.noiseScale) + 1.0f) * 0.5f;
+  
+    vec4 currValue = density * fogValue;
+    //Phase function parameter is not changed by the density
+    currValue.z = cb_.phaseG;
+    
+    //currValue = vec4(worldTexelPosition / 512.0f, 0.0f);
+    currValue = edgeValue ? currValue * cb_.cellFraction : currValue;
+    imageStore(imageAtlas_, texelPosition, currValue);
+    edgeValue = false;
   }
 }

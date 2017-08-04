@@ -79,10 +79,11 @@ namespace Renderer
 			float scattering;
 			float absorption;
 			float phaseG;
+
+			float texelWorldSize;
 			float noiseScale;
 			float cellFraction;		//amount that the edge texel is covered
 			int edgeTexelY;				//texel at which the height fog stops
-		//	float texelWorldSize;
 		};
 		
 		struct PerNodeData
