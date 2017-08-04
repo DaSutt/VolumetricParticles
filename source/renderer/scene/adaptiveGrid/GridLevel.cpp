@@ -161,6 +161,7 @@ namespace Renderer
 				imageOffset_++;
 			}
 		}
+		childOffset_ = parentChildOffset + 1;
 
 		return childOffset;
 	}

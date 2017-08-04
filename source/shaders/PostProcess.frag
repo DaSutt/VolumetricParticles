@@ -57,6 +57,6 @@ void main()
 	vec3 finalColor = opaqueColor.xyz * raymarchingResults.a + raymarchingResults.xyz;
 	finalColor = pow(finalColor, vec3(1.0 / 2.2));
 	finalColor += noise.rgb / 255.0;
-	//outColor = vec4(raymarchingResults.xyz,  1.0f);
-	outColor = vec4(finalColor, 1.0f);
+	outColor = vec4(raymarchingResults.xyz,  1.0f);
+	//outColor = vec4(finalColor, 1.0f);
 }

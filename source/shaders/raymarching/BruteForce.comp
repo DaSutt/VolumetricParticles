@@ -68,14 +68,10 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
     
     accumScatteringTransmittance = IntegrateScatteringTransmittance(
       accumScatteringTransmittance, status.accumTexValue, direction, 1.0f, stepData.x);
-    //if(status.currentLevel == 2)
-    //{
-    //  if(status.accumTexValue != vec4(0))
-    //  {
-    //    accumScatteringTransmittance = status.accumTexValue;
-    //  }  
-    //  //return accumScatteringTransmittance;
-    //}
+    if(status.currentLevel == 1)
+    {
+      return status.accumTexValue;
+    }
     //if(status.currentLevel > maxLevel)
     //{
     //  maxLevel = status.currentLevel;

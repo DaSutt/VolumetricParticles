@@ -115,6 +115,8 @@ SampleData SampleGrid(SampleData sampleData, vec3 gridSpacePos,
   const vec4 texValue = texture(textureAtlas_, texCoord);
   
   sampleData = Accumulate(sampleData, texValue);
+  sampleData.accumTexValue = vec3(texValue);
+  sampleData.phaseCount = 1;
 	return sampleData;
 }
 

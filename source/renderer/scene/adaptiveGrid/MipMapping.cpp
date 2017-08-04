@@ -161,7 +161,7 @@ namespace Renderer
 		int parentNodeOffset = 0;
 		if (!childNodeIndices.empty())
 		{
-			parentNodeOffset = -childNodeIndices[0];
+			parentNodeOffset = -parentLevel->GetChildOffset();
 		}
 		//go through all parent nodes and collect all child nodes that contribute to mipmapping
 		for (int parentNodeIndex = 0; parentNodeIndex < parentNodeCount; ++parentNodeIndex)

@@ -103,6 +103,7 @@ namespace Renderer
 		int GetMaxImageOffset() const { return imageOffset_; }
 		bool HasParent() const { return parentLevel_ != nullptr; }
 		bool IsLeafLevel() const { return leafLevel_; }
+		int GetChildOffset() const { return childOffset_; }
 	private:
 		//Calculate the grid pos on this level for a specific node by taking the parent offset into account
 		glm::vec3 CalcGridPos_Node(const glm::vec3& gridPos_World, const glm::vec3& parentGridPos_Level);
@@ -123,6 +124,8 @@ namespace Renderer
 
 		float gridCellSize_ = 0.0f;
 		float imageTexelSize_ = 0.0f;
+
+		int childOffset_ = 0;
 
 		//True if this is the most detailed level of the tree
 		bool leafLevel_ = false;

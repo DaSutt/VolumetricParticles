@@ -43,7 +43,7 @@ namespace
 	//True if texture to store the density of the fog in world space should be created
 	constexpr bool createDebugTexture = false;
 
-	constexpr bool debugFilling = false;
+	constexpr bool debugFilling = true;
 	const glm::ivec2 debugStart = glm::ivec2(GridConstants::nodeResolution / 2);
 	const glm::ivec2 debugEnd = debugStart + glm::ivec2(1,1);
 	const char* mediumName = "groundFogMedium";
@@ -243,7 +243,7 @@ namespace Renderer
 			//auto& queryPool = Wrapper::QueryPool::GetInstance();
 			//queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);
 			//
-			//vkCmdDispatch(commandBuffer, dispatchCount_, 1, 1);
+			vkCmdDispatch(commandBuffer, dispatchCount_, 1, 1);
 			//
 			//queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_GROUND_FOG, frameIndex);
 		}

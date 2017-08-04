@@ -56,6 +56,9 @@ struct MaxLevelData
 //It is used during blending between mipmap and detailed value
 MaxLevelData CalcMaxLevel(MaxLevelData prevMaxLevelData, float stepLength)
 {
+  prevMaxLevelData.currMaxLevel = 2;
+  prevMaxLevelData.changeCount = 0;
+  return prevMaxLevelData;
   const int prevMaxLevel = prevMaxLevelData.currMaxLevel;
   const float minStepLength = levelData_.data[prevMaxLevel].gridCellSize 
     * raymarchData_.lodScale_Reciprocal;

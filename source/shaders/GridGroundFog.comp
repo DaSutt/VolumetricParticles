@@ -88,37 +88,40 @@ bool DebugNode(vec3 worldOffset)
   return false;
 }
 
+//Fill one ground fog node based on its world space position with volumetric data
+//Based on 3D noise the volumetric values are multiplied by the density
 layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
 void main()
 {
   const int bufferOffset = int(gl_WorkGroupID.x);
   BufferElement curr = perCell_.data[bufferOffset];
   
-  const vec4 fogValue = vec4(cb_.scattering, cb_.absorption, cb_.phaseG, 0.0);
-  
-  const ivec3 imageOffset = UnpackImageOffset_I(curr.imageOffset);
-  bool edgeValue = true;
-  for(int y = cb_.edgeTexelY - 1; y < IMAGE_RESOLUTION; ++y)
+  //const vec4 fogValue = vec4(cb_.scattering, cb_.absorption, cb_.phaseG, 0.0);
+  //
+  const ivec3 imageOffset = UnpackImageOffset_I(curr.imageOffset) * IMAGE_RESOLUTION;
+  //bool edgeValue = true;
+  for(int y = 0; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
     const ivec3 texelPosition = imageOffset + offset;
     
-    const vec3 worldTexelPosition = curr.worldOffset + offset * cb_.texelWorldSize;
-    const float density = (snoise(worldTexelPosition * cb_.noiseScale) + 1.0f) * 0.5f;
-    
-    vec4 currValue = density * fogValue;
-    currValue = edgeValue ? currValue * cb_.cellFraction : currValue;
-    //imageStore(imageAtlas_, texelPosition, currValue);
-    
-    //if(offset.x > 5)
-    //{
-      //imageStore(imageAtlas_, texelPosition, vec4(1.0, 0.0, 0.0, 0.0));
-    //}
-    //else
-    //{
-      //imageStore(imageAtlas_, texelPosition, vec4(0,0,0,0));
-    //}
-    
-    edgeValue = false;
+    imageStore(imageAtlas_, texelPosition, vec4(1,0,0,0));
+  //  const vec3 worldTexelPosition = curr.worldOffset + offset * cb_.texelWorldSize;
+  //  const float density = (snoise(worldTexelPosition * cb_.noiseScale) + 1.0f) * 0.5f;
+  //  
+  //  vec4 currValue = density * fogValue;
+  //  currValue = edgeValue ? currValue * cb_.cellFraction : currValue;
+  //  //imageStore(imageAtlas_, texelPosition, currValue);
+  //  
+  //  //if(offset.x > 5)
+  //  //{
+  //    //imageStore(imageAtlas_, texelPosition, vec4(1.0, 0.0, 0.0, 0.0));
+  //  //}
+  //  //else
+  //  //{
+  //    //imageStore(imageAtlas_, texelPosition, vec4(0,0,0,0));
+  //  //}
+  //  
+  //  edgeValue = false;
   }
 }
