@@ -54,7 +54,8 @@ namespace Renderer
 	constexpr int debugScreenDivision_ = 1;
 
 	AdaptiveGrid::AdaptiveGrid(float worldCellSize) :
-		worldCellSize_{ worldCellSize }
+		worldCellSize_{ worldCellSize },
+		imageAtlas_{GridConstants::imageResolution}
 	{
 		//min count for grid level data
 		gridLevelData_.resize(3);
@@ -540,7 +541,6 @@ namespace Renderer
 
 		
 		const int maxParentLevel = static_cast<int>(gridLevels_.size() - 1);
-		mipMapping_.UpdateAtlasProperties(atlasSideLength);
 		for (size_t i = 0; i < maxParentLevel; ++i)
 		{
 			mipMapping_.UpdateMipMapNodes(&gridLevels_[i], &gridLevels_[i + 1]);
@@ -578,7 +578,7 @@ namespace Renderer
     bool resize = false;
 		std::vector<ResourceResize>resourceResizes;
 		const auto totalSizes =	GetGpuResourceSize();
-		imageAtlas_.Resize(imageManager);
+		imageAtlas_.ResizeImage(imageManager);
 
 		for (int i = 0; i < GPU_MAX; ++i)
 		{

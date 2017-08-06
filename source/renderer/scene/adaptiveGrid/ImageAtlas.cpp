@@ -30,8 +30,8 @@ SOFTWARE.
 
 namespace Renderer
 {
-	ImageAtlas::ImageAtlas() :
-		cbData_{GridConstants::imageResolution, GridConstants::imageResolution}
+	ImageAtlas::ImageAtlas(int imageResolution) :
+		cbData_{imageResolution}
 	{}
 
 	void ImageAtlas::RequestResources(ImageManager* imageManager, BufferManager* bufferManager, 
@@ -40,7 +40,7 @@ namespace Renderer
 		memoryPool_ = memoryPool;
 
 		ImageManager::Ref_ImageInfo imageInfo;
-		const uint32_t imageResolution = static_cast<uint32_t>(GridConstants::imageResolution);
+		const uint32_t imageResolution = static_cast<uint32_t>(cbData_.imageResolution);
 		imageInfo.extent = { imageResolution,imageResolution,imageResolution };
 		imageInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 		imageInfo.imageType = ImageManager::IMAGE_GRID;
@@ -68,9 +68,9 @@ namespace Renderer
 		cbData_.atlasSideLength = sideLength_;
 	}
 
-	void ImageAtlas::Resize(ImageManager* imageManager)
+	void ImageAtlas::ResizeImage(ImageManager* imageManager)
 	{
-		VkDeviceSize newSize = sideLength_ * GridConstants::imageResolution;
+		VkDeviceSize newSize = sideLength_ * cbData_.imageResolution;
 		auto& maxSize = imageResource.maxSize;
 		
 		if (maxSize < newSize)

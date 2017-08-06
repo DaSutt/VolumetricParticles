@@ -33,23 +33,29 @@ namespace Renderer
 {
 	class BufferManager;
 	class ImageManager;
-
+	
+	//Manages a image atlas for 3D images
+	//All elements have the same size
 	class ImageAtlas
 	{
 	public:
-		ImageAtlas();
+		ImageAtlas(int imageResolution);
+		//Resources:
+		//	- R16G16B16A16_SFLOAT 3D Storage image 
+		//	- Constant buffer containing the size and image resolution of the atlas
 		void RequestResources(ImageManager* imageManager, BufferManager* bufferManager, 
 			ImageManager::ImageMemoryPool memoryPool, int frameCount);
+		//Calculate new side length of the atlas
 		void UpdateSize(int maxImageOffset);
-		void Resize(ImageManager* imageManager);
+		void ResizeImage(ImageManager* imageManager);
 
 		const int GetImageIndex() const { return imageResource.index; }
 		const int GetBufferIndex() const { return cbIndex_; }
 		const int GetSideLength() const { return sideLength_; }
+		const int GetResolution() const { return cbData_.imageResolution; }
 	private:
 		struct CBData
 		{
-			int imageResolutionOffset;
 			int imageResolution;
 			int atlasSideLength;
 		};
