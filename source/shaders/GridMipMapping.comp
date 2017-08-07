@@ -99,28 +99,28 @@ void main()
     vec3 samplePos = texelOffset + childImageOffset;
     sampledAverage += texture(textureAtlas_, samplePos);
   }
-  //
-  //sampledAverage *= 0.125;
-  //sharedMemory[threadIndex] = sampledAverage;
-  //
-  //memoryBarrierShared();
-  //
-  ////TODO Unroll based on total threads
-  ////parallel reducing of values
-  //for(int size = TOTAL_THREADS / 2; size > 0; size >>= 1)
-  //{
-  //  if(threadIndex < size)
-  //  {
-  //    sharedMemory[threadIndex] += sharedMemory[threadIndex + size];
-  //  }
-  //  
-  //  memoryBarrierShared();
-  //}
-  //
-  //if(threadIndex == 0)
-  //{
-  //  vec4 finalValue = sharedMemory[0] / float(TOTAL_THREADS);
-  //  const ivec3 parentTexel = UnpackImageOffset(nodeData.parentTexel);
-  //  imageStore(mipMapAtlas_, parentTexel, finalValue);
-  //}
+  
+  sampledAverage /= float(SAMPLE_COUNT);
+  sharedMemory[threadIndex] = sampledAverage;
+  
+  memoryBarrierShared();
+  
+  //TODO Unroll based on total threads
+  //parallel reducing of values
+  for(int size = TOTAL_THREADS / 2; size > 0; size >>= 1)
+  {
+    if(threadIndex < size)
+    {
+      sharedMemory[threadIndex] += sharedMemory[threadIndex + size];
+    }
+    
+    memoryBarrierShared();
+  }
+  
+  if(threadIndex == 0)
+  {
+    vec4 finalValue = sharedMemory[0] / float(TOTAL_THREADS);
+    const ivec3 parentTexel = UnpackImageOffset_I(nodeData.parentTexel);
+    imageStore(mipMapAtlas_, parentTexel, finalValue);  
+  }
 }

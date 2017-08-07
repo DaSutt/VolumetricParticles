@@ -371,14 +371,12 @@ namespace Renderer
 		//}
 
 		mipMapImageAtlas_.ResizeImage(imageManager);
-		UpdateAtlasProperties();
 	}
 	
-	void MipMapping::UpdateAtlasProperties()
+	void MipMapping::UpdateAtlasProperties(int atlasSideLength, int atlasResolution)
 	{
-		const int atlasSideLength = mipMapImageAtlas_.GetSideLength();
 		cbData_.atlasSideLength_Reciprocal = 1.0f / atlasSideLength;
-		cbData_.texelSize = 1.0f / mipMapImageAtlas_.GetResolution() * atlasSideLength;
+		cbData_.texelSize = 1.0f / (atlasResolution * atlasSideLength);
 		cbData_.texelSize_Half = cbData_.texelSize * 0.5f;
 	}
 

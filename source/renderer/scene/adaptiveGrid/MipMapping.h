@@ -73,10 +73,16 @@ namespace Renderer
 		void UpdateGpuResources(BufferManager* bufferManager, int frameIndex);
 		//Returns true if the storage buffers need to be resized and stores the new size and ids in resourceResizes
 		bool ResizeGpuResources(ImageManager* imageManager, std::vector<ResourceResize>& resourceResizes);
+		//Update the properties of the atlas containing the original data
+		void UpdateAtlasProperties(int atlasSideLength, int atlasResolution);
 
 		//TODO
 		void Dispatch(ImageManager* imageManager, BufferManager* bufferManager, 
 			VkCommandBuffer commandBuffer, int frameIndex, int level, int pass);
+
+
+
+		int GetImageAtlasIndex() const { return mipMapImageAtlas_.GetImageIndex(); }
 	private:
 		enum Passes
 		{
@@ -105,7 +111,6 @@ namespace Renderer
 		ChildNodeData GetChildNodeData(const Renderer::NodeData& data, int childNodeIndex, bool leafLevel);
 		//After mipmaps for each level have been created update the texel positions based on the size of the mipmap atlas
 		void UpdateImageOffsets(ImageManager* imageManager);
-		void UpdateAtlasProperties();
 		int CalcStorageBufferSize(Passes pass);
 
 		//Data passed to the shader to average each child and store it

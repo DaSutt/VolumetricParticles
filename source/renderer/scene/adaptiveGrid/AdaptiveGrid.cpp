@@ -184,6 +184,10 @@ namespace Renderer
 	void AdaptiveGrid::SetImageIndices(int raymarching, int depth, int shadowMap, int noise)
 	{
 		raymarchingImageIndex_ = raymarching;
+
+		//TODO to test the image atlas 
+		//raymarchingImageIndex_ = mipMapping_.GetImageAtlasIndex();
+
 		depthImageIndex_ = depth;
 		shadowMapIndex_ = shadowMap;
 		noiseImageIndex_ = noise;
@@ -231,7 +235,8 @@ namespace Renderer
 			bindingInfo.resourceIndex = {
 				raymarchingImageIndex_,
 				depthImageIndex_,
-				imageAtlas_.GetImageIndex(),
+				//imageAtlas_.GetImageIndex(),
+				mipMapping_.GetImageAtlasIndex(),
 				shadowMapIndex_,
 				noiseImageIndex_,
 				gpuResources_[GPU_BUFFER_NODE_INFOS].index,
@@ -533,6 +538,7 @@ namespace Renderer
 		}
 		imageAtlas_.UpdateSize(gridLevels_.back().GetImageOffset());
 		const int atlasSideLength = imageAtlas_.GetSideLength();
+		mipMapping_.UpdateAtlasProperties(atlasSideLength, imageAtlas_.GetResolution());
 		for (auto& level : gridLevels_)
 		{
 			level.UpdateImageIndices(atlasSideLength);
