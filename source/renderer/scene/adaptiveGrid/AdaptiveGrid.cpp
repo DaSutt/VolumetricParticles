@@ -235,8 +235,8 @@ namespace Renderer
 			bindingInfo.resourceIndex = {
 				raymarchingImageIndex_,
 				depthImageIndex_,
-				//imageAtlas_.GetImageIndex(),
-				mipMapping_.GetImageAtlasIndex(),
+				imageAtlas_.GetImageIndex(),
+				//mipMapping_.GetImageAtlasIndex(),
 				shadowMapIndex_,
 				noiseImageIndex_,
 				gpuResources_[GPU_BUFFER_NODE_INFOS].index,

@@ -51,8 +51,8 @@ namespace Renderer
 		//Resources:
 		//	- 3D storage image used as an image atlas for the averaged mipmaps
 		//	- Constant buffer for image atlas properties
-		//	- Storage buffer for each child node
-		//	- TODO
+		//	- Storage buffer for each child node for averaging
+		//	- Storage buffer for each parent node for merging
 		void RequestResources(ImageManager* imageManager, BufferManager* bufferManager, int frameCount, int atlasImageIndex);
 		//Bindings:
 		//Averaging:
@@ -62,7 +62,11 @@ namespace Renderer
 		//	- Out: Mip map image atlas as storage image
 		//	- In: Push constant with start offset for the current level into the child node data
 		//Merging:
-		//TODO
+		//	- In\Out: Image atlas
+		//	- In: mipmap image atlas
+		//	- In: Constant buffer with image atlas properties
+		//	- In: Storage buffer with parent node data
+		//	- In: Push constant with start offset for the current level into parent node data
 		int GetShaderBinding(ShaderBindingManager* bindingManager, int frameCount, int pass);
 
 		//Add each parent node that has children to the mipmapping
@@ -96,6 +100,12 @@ namespace Renderer
 			uint32_t imageOffset;
 			uint32_t parentTexel;		//Texel coordinates packed into this 32bit value
 		};
+		struct ParentNodeData
+		{
+			uint32_t imageAtlasOffset;
+			uint32_t imageAtlas_mipmapOffset;
+			uint32_t mipmapOffset;
+		};
 		struct LevelData_New
 		{
 			uint32_t averagingStart;	//Start index into the perChildData array during averaging
@@ -113,13 +123,22 @@ namespace Renderer
 		void UpdateImageOffsets(ImageManager* imageManager);
 		int CalcStorageBufferSize(Passes pass);
 
+		//Add buffer barrier for the averaged value buffer 
+		//and for writing to the image atlas
+		void AddBarriers(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex);
+		void AddMergingBarrier(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex, bool lastLevel);
+
 		//Data passed to the shader to average each child and store it
 		std::vector<ChildNodeData> perChildData_;
 		//Data for each child with the total mipmapIndex
 		std::vector<int> mipmapIndices_;
-		std::vector<LevelData_New> perLevelData_;
+		std::vector<LevelData_New> perLevelDataChild_;
 		std::vector<int> perLevelChildCount_;
 		int mipmapCount_ = 0;
+		//Data for each parent node for merging of the image atlas and the mipmap atlas
+		std::vector<ParentNodeData> perParentData_;
+		std::vector<LevelData_New> perLevelDataParent_;
+		std::vector<int> perLevelParentCount_;
 
 		//Store the averaged values at the centers of nodes at each texel
 		ImageAtlas mipMapImageAtlas_;
@@ -127,83 +146,9 @@ namespace Renderer
 
 		int cbIndex_ = -1;
 		int perLevelPushConstantIndex_ = -1;
-		std::array<ResourceResize, MIPMAP_MAX> storageBuffers_;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	public:
-		
-		struct DispatchInfo
-		{
-			int x;
-			int y; 
-			int z;
-			int resolution;
-		};
-
-		
-		
-
-		
-
-		
-	private:
-		
-		//Add buffer barrier for the averaged value buffer 
-		//and for writing to the image atlas
-		void AddBarriers(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex);
-		void AddMergingBarrier(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex, bool lastLevel);
-
-		struct MipMapInfo
-		{
-			uint32_t childImageOffset;
-			uint32_t parentTexel;
-		};
-		//Returns the image offset for the child that has to be averaged
-		//On non leaf nodes the mipmaps are averaged instead of the original values
-		//Also returns the texel in the parent node to which the child values corresponds
-		MipMapInfo GetMipMapInfo(int childNodeIndex, const GridLevel* childLevel);
-
-		
-		int perFillingPushConstantIndex_ = -1;
 		int atlasImageIndex_ = -1;
-		
-		std::vector<int> mipMapOffsets_;
-		
-		struct LevelData
-		{
-			uint32_t childImageCount;
-			int averagingOffset;
-			uint32_t mipMapCount;
-			int mergingOffset;
-		};
-
-		//Store the offsets for the different levels. 
-		//Coarser levels need to be calculated later to use the mip map data of their children
-		//std::vector<LevelData> levelData_;
-		int mipMapCount_ = 0;
-
-		struct NodeImageOffsets
-		{
-			uint32_t imageOffset;
-			uint32_t mipMapImageOffset;
-			uint32_t mipMapSourceOffset;
-		};
-		std::vector<NodeImageOffsets> imageOffsets_;
-		int perLevelMergingPushConstant_ = -1;
-
-		
+		int perLevelMergingPushConstantIndex_ = -1;
+		std::array<ResourceResize, MIPMAP_MAX> storageBuffers_;
 
 		//TODO: Should be removed, currently only used to get pipeline layout for push constants
 		ShaderBindingManager* bindingManager_ = nullptr;

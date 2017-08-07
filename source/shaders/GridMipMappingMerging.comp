@@ -24,18 +24,14 @@ SOFTWARE.
 
 #version 450
 
-const int NODE_RESOLUTION = 16;
-const int IMAGE_RESOLUTION = NODE_RESOLUTION + 1;
-const int IMAGE_RESOLUTION_OFFSET = IMAGE_RESOLUTION + 2;
+#include "ImageOffset.comp"
+#include "GridConstants.comp"
 
-const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
-const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
-
-struct NodeImageOffsets
+struct ImageOffsets
 {
-  uint imageOffset;
-  uint mipMapImageOffset;
-  uint mipMapSourceOffset;
+  uint imageAtlas;
+  uint imageAtlas_mipmap;
+  uint mipmap;
 };
 
 
@@ -47,44 +43,37 @@ layout(set = 0, binding = 2) uniform ConstantBuffer
   float atlasTexelToTexCoord;
   float texCoordOffset;
 } cb_;
-layout(set = 0, binding = 3) buffer nodeBuffer
+layout(set = 0, binding = 3) buffer ImageOffsetBuffer
 {
-  NodeImageOffsets data[];
-} nodes_;
+  ImageOffsets data[];
+} imageOffsets_;
 layout(push_constant) uniform perLevelConstant
 {
   int offset;
 } perLevel_;
 
-ivec3 UnpackImageOffset(uint imageOffset)
-{
-  return ivec3(
-    imageOffset >> IMAGE_BIT_OFFSETS[0],
-    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
-    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
-}
-
-layout(local_size_x = IMAGE_RESOLUTION_OFFSET, local_size_y = IMAGE_RESOLUTION_OFFSET, local_size_z = 1) in;
+//Sample the mipmapping volume texture and combine it with the original texture
+//Store the results inside the imageAtlas
+layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
 void main()
 {
   const int index = int(gl_WorkGroupID.x);
-  const NodeImageOffsets nodeData = nodes_.data[index + perLevel_.offset];
-  
-  const ivec3 imageOffset = UnpackImageOffset(nodeData.imageOffset);
-  const ivec3 mipMapImageOffset = UnpackImageOffset(nodeData.mipMapImageOffset);
-  const ivec3 mipMapSourceImageOffset = UnpackImageOffset(nodeData.mipMapSourceOffset);
-  
-  for(int y = 1; y < IMAGE_RESOLUTION_OFFSET - 1; ++y)
+  const ImageOffsets offsets = imageOffsets_.data[index + perLevel_.offset];
+  //
+  //const ivec3 imageOffset = UnpackImageOffset(nodeData.imageOffset);
+  const ivec3 mipmapOffset = UnpackImageOffset_I(offsets.imageAtlas_mipmap) * IMAGE_RESOLUTION;
+  //const ivec3 mipMapSourceImageOffset = UnpackImageOffset(nodeData.mipMapSourceOffset);
+  //
+  for(int y = 0; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
-    const ivec3 mipMapTexel = mipMapImageOffset + offset;
-    const ivec3 mipMapSourceTexel = mipMapSourceImageOffset + offset;
-    
-    const vec4 imageValue = imageLoad(imageAtlas_, imageOffset + offset);
-    vec4 mipMapValue = texture(mipMapAtlas_, (mipMapSourceTexel) * 
-      cb_.atlasTexelToTexCoord); 
-    //mipMapValue = vec4(0.0f, 5.0f, 0.0f, 0.0f);
-              
-    //imageStore(imageAtlas_, mipMapTexel, mipMapValue);
+    const ivec3 mipMapTexel = mipmapOffset + offset;
+  //  const ivec3 mipMapSourceTexel = mipMapSourceImageOffset + offset;
+  //  
+  //  const vec4 imageValue = imageLoad(imageAtlas_, imageOffset + offset);
+  //  vec4 mipMapValue = texture(mipMapAtlas_, (mipMapSourceTexel) * 
+  //    cb_.atlasTexelToTexCoord); 
+    vec4 mipMapValue = vec4(1,0,0,0);
+    imageStore(imageAtlas_, mipMapTexel, mipMapValue);
   }
 }
