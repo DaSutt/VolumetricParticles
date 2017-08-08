@@ -35,7 +35,7 @@ using namespace DebugData;
 #include "BruteForce.comp"
 
 const bool DEBUG_STORE_IMAGE_ATLAS = true;
-const int DEBUG_IMAGE_ATLAS_SLICE = 0;
+const int DEBUG_IMAGE_ATLAS_SLICE = 9;
 const int DEBUG_IMAGE_ATLAS_SCALE = 10;
 
 struct Ray {

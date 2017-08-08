@@ -324,8 +324,9 @@ namespace Renderer
 			const int mipmapIndex = mipmapIndices_[i];
 			const auto atlasOffset = Math::Index1Dto3D(mipmapIndex, atlasSideLength)
 				* atlasResolution;
-			perChildData_[i].parentTexel += NodeData::PackTextureOffset(atlasOffset);
-			perParentData_[mipmapIndex].mipmapOffset = perChildData_[i].parentTexel;
+			const uint32_t offset = NodeData::PackTextureOffset(atlasOffset);
+			perChildData_[i].parentTexel += offset;
+			perParentData_[mipmapIndex].mipmapOffset = offset;
 		}
 		
 		mipMapImageAtlas_.ResizeImage(imageManager);

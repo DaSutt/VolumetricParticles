@@ -66,13 +66,12 @@ void main()
   for(int y = 0; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
-    const ivec3 mipMapTexel = mipmapOffset + offset;
-    const ivec3 mipMapSourceTexel = mipMapSourceImageOffset + offset;
-    
     const vec4 imageValue = imageLoad(imageAtlas_, imageOffset + offset);
-    const vec4 mipMapValue = texture(mipMapAtlas_, (mipMapSourceTexel) 
-      * cb_.texelSizeMipmap); 
-    //vec4 mipMapValue = imageValue * 0.5;
+    
+    const vec3 mipmapSourceTexcoord = (mipMapSourceImageOffset + offset) * cb_.texelSizeMipmap;   
+    const vec4 mipMapValue = texture(mipMapAtlas_, mipmapSourceTexcoord) + imageValue * 0.25f; 
+       
+    const ivec3 mipMapTexel = mipmapOffset + offset;
     imageStore(imageAtlas_, mipMapTexel, mipMapValue);
   }
 }
