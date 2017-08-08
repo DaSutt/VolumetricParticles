@@ -336,6 +336,7 @@ namespace Renderer
 		cbData_.atlasSideLength_Reciprocal = 1.0f / atlasSideLength;
 		cbData_.texelSize = 1.0f / (atlasResolution * atlasSideLength);
 		cbData_.texelSize_Half = cbData_.texelSize * 0.5f;
+		cbData_.texelSizeMipmap = 1.0f / (mipMapImageAtlas_.GetResolution() * mipMapImageAtlas_.GetSideLength());
 	}
 
 	int MipMapping::CalcStorageBufferSize(MipMapping::Passes pass)

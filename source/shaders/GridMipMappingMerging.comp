@@ -39,9 +39,8 @@ layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
 layout(set = 0, binding = 1) uniform sampler3D mipMapAtlas_;
 layout(set = 0, binding = 2) uniform ConstantBuffer
 {
-  float UNUSED;
-  float atlasTexelToTexCoord;
-  float texCoordOffset;
+  vec3 UNUSED;
+  float texelSizeMipmap;
 } cb_;
 layout(set = 0, binding = 3) buffer ImageOffsetBuffer
 {
@@ -59,21 +58,21 @@ void main()
 {
   const int index = int(gl_WorkGroupID.x);
   const ImageOffsets offsets = imageOffsets_.data[index + perLevel_.offset];
-  //
-  //const ivec3 imageOffset = UnpackImageOffset(nodeData.imageOffset);
+  
+  const ivec3 imageOffset = UnpackImageOffset_I(offsets.imageAtlas) * IMAGE_RESOLUTION;
   const ivec3 mipmapOffset = UnpackImageOffset_I(offsets.imageAtlas_mipmap) * IMAGE_RESOLUTION;
-  //const ivec3 mipMapSourceImageOffset = UnpackImageOffset(nodeData.mipMapSourceOffset);
+  const ivec3 mipMapSourceImageOffset = UnpackImageOffset_I(offsets.mipmap);
   //
   for(int y = 0; y < IMAGE_RESOLUTION; ++y)
   {
     const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
     const ivec3 mipMapTexel = mipmapOffset + offset;
-  //  const ivec3 mipMapSourceTexel = mipMapSourceImageOffset + offset;
-  //  
-  //  const vec4 imageValue = imageLoad(imageAtlas_, imageOffset + offset);
-  //  vec4 mipMapValue = texture(mipMapAtlas_, (mipMapSourceTexel) * 
-  //    cb_.atlasTexelToTexCoord); 
-    vec4 mipMapValue = vec4(1,0,0,0);
+    const ivec3 mipMapSourceTexel = mipMapSourceImageOffset + offset;
+    
+    const vec4 imageValue = imageLoad(imageAtlas_, imageOffset + offset);
+    const vec4 mipMapValue = texture(mipMapAtlas_, (mipMapSourceTexel) 
+      * cb_.texelSizeMipmap); 
+    //vec4 mipMapValue = imageValue * 0.5;
     imageStore(imageAtlas_, mipMapTexel, mipMapValue);
   }
 }

@@ -115,6 +115,7 @@ namespace Renderer
 			float atlasSideLength_Reciprocal;
 			float texelSize;
 			float texelSize_Half;
+			float texelSizeMipmap;
 		};
 
 		//Store the image offset for the child and pack the parent texel
