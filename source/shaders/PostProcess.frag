@@ -25,7 +25,7 @@ SOFTWARE.
 #version 450
 
 const int DEBUG_SCREEN_DIVISION = 2;
-const bool DEBUG_RETURN_IMAGE_ATLAS = true;
+const bool DEBUG_RETURN_IMAGE_ATLAS = false;
 
 layout(location = 0) out vec4 outColor;
 

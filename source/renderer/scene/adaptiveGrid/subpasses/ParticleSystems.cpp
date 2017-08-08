@@ -30,11 +30,16 @@ SOFTWARE.
 #include "..\GridLevel.h"
 #include "..\AdaptiveGridConstants.h"
 
+#include "..\..\..\passes\GuiPass.h"
+
 #include "..\..\..\resources\BufferManager.h"
+#include "..\..\..\resources\ImageManager.h"
 #include "..\..\..\passResources\ShaderBindingManager.h"
 
 #include "..\..\..\..\scene\Scene.h"
 #include "..\Node.h"
+#include "..\..\..\wrapper\QueryPool.h"
+#include "..\..\..\wrapper\Barrier.h"
 
 namespace Renderer
 {
@@ -91,51 +96,32 @@ namespace Renderer
 		gridOffset_ = gridOffset;
 	}
 
-	int ParticleSystems::CalcSize(int bufferType)
-	{
-		switch (bufferType)
-		{
-		case GPU_STORAGE_NODE:
-			return static_cast<int>(sizeof(NodeData) * std::max(nodeParticleMapping.size(), 1ull));
-		case GPU_STORAGE_NODE_PARTICLE:
-		{
-			int elementCount = 0;
-			for (const auto& nodeParticles : nodeParticleMapping)
-			{
-				elementCount += static_cast<int>(nodeParticles.second.size());
-			}
-			return sizeof(int) * std::max(elementCount, 1);
-		}
-		case GPU_STORAGE_PARTICLE:
-			return sizeof(Particle) * std::max(maxParticles_, 1);
-		default:
-			printf("Invalide particle systems buffer type %d\n", bufferType);
-			return 0;
-		}
-	}
-
 	void ParticleSystems::RequestResources(BufferManager* bufferManager, int frameCount, int atlasImageIndex)
 	{
-		BufferManager::BufferInfo cbInfo;
-		cbInfo.typeBits = BufferManager::BUFFER_CONSTANT_BIT | BufferManager::BUFFER_SCENE_BIT;
-		cbInfo.pool = BufferManager::MEMORY_CONSTANT;
-		cbInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		cbInfo.bufferingCount = frameCount;
-		cbInfo.data = &cbData_;
-		cbInfo.size = sizeof(CBData);
-		cbIndex_ = bufferManager->Ref_RequestBuffer(cbInfo);
-
-		BufferManager::BufferInfo storageBufferInfo;
-		storageBufferInfo.typeBits = BufferManager::BUFFER_GRID_BIT;
-		storageBufferInfo.pool = BufferManager::MEMORY_GRID;
-		storageBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-		storageBufferInfo.bufferingCount = frameCount;
-		for (int i = 0; i < GPU_MAX; ++i)
 		{
-			//fill with one element, will later be resized properly
-			storageBufferInfo.size = static_cast<VkDeviceSize>(CalcSize(i));
-			storageBuffers_[i].index = bufferManager->Ref_RequestBuffer(storageBufferInfo);
-			storageBuffers_[i].totalSize = storageBufferInfo.size;
+			BufferManager::BufferInfo cbInfo;
+			cbInfo.typeBits = BufferManager::BUFFER_CONSTANT_BIT | BufferManager::BUFFER_SCENE_BIT;
+			cbInfo.pool = BufferManager::MEMORY_CONSTANT;
+			cbInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			cbInfo.bufferingCount = frameCount;
+			cbInfo.data = &cbData_;
+			cbInfo.size = sizeof(CBData);
+			cbIndex_ = bufferManager->Ref_RequestBuffer(cbInfo);
+		}
+		
+		{
+			BufferManager::BufferInfo storageBufferInfo;
+			storageBufferInfo.typeBits = BufferManager::BUFFER_GRID_BIT;
+			storageBufferInfo.pool = BufferManager::MEMORY_GRID;
+			storageBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			storageBufferInfo.bufferingCount = frameCount;
+			for (int i = 0; i < GPU_MAX; ++i)
+			{
+				//fill with one element, will later be resized properly
+				storageBufferInfo.size = CalcStorageBufferSize(static_cast<GpuBufferType>(i));
+				storageBuffers_[i].index = bufferManager->Ref_RequestBuffer(storageBufferInfo);
+				storageBuffers_[i].size = storageBufferInfo.size;
+			}
 		}
 		
 		atlasImageIndex_ = atlasImageIndex;
@@ -158,57 +144,50 @@ namespace Renderer
 			bindingInfo.refactoring_.push_back(true);
 		}
 		bindingInfo.setCount = frameCount;
-
+		
 		return bindingManager->RequestShaderBinding(bindingInfo);
 	}
 
 	void ParticleSystems::OnLoadScene(const Scene* scene)
 	{
-		const auto& particleSystemInfos = scene->GetParticleTransforms();
+		//const auto& particleSystemInfos = scene->GetParticleTransforms();
 		int offset = 0;
-		for (const auto& systemInfo : particleSystemInfos)
-		{
-			ParticleSystem particleSystem;
-			particleSystem.SetTransform(systemInfo, gridOffset_);
-			particleSystem.SetParticleOffset(offset);
-			
-			const int particleCount = particleSystem.GetParticleCount();
-			particleSystems_.push_back(particleSystem);
-			offset += particleCount;
-		}
+		//for (const auto& systemInfo : particleSystemInfos)
+		//{
+		//	ParticleSystem particleSystem;
+		//	particleSystem.SetTransform(systemInfo, gridOffset_);
+		//	particleSystem.SetParticleOffset(offset);
+		//
+		//	const int particleCount = particleSystem.GetParticleCount();
+		//	particleSystems_.push_back(particleSystem);
+		//	offset += particleCount;
+		//}
 		offset += debugParticleCount_;
-
 		maxParticles_ = offset;
-	}
-
-	glm::ivec3 CalcTextureOffset(int texIndex, int atlasResolution, int imageOffsetResolution)
-	{
-		return glm::vec3(CalcGridPos(texIndex, atlasResolution)) * 
-			static_cast<float>(imageOffsetResolution) + glm::vec3(1.0f);
 	}
 
 	void ParticleSystems::Update(float dt)
 	{
-		//if debug particles are used do not update with dynamic particle systems
-		if (debugParticleCount_ < 0)
-		{
-			particles_.clear();
-			radi_.clear();
-
-			for (auto& particleSystem : particleSystems_)
-			{
-				particleSystem.Update(dt);
-
-				const int activeCount = particleSystem.GetActiveParticleCount();
-				const auto& activeParticles = particleSystem.GetParticles();
-				particles_.insert(particles_.end(), activeParticles.begin(), std::next(activeParticles.begin(), activeCount));
-				const auto& radi = particleSystem.GetRadi();
-				radi_.insert(radi_.end(), radi.begin(), std::next(radi.begin(), activeCount));
-			}
-		}
+		////if debug particles are used do not update with dynamic particle systems
+		//if (debugParticleCount_ < 0)
+		//{
+		//	particles_.clear();
+		//	radi_.clear();
+		//
+		//	for (auto& particleSystem : particleSystems_)
+		//	{
+		//		particleSystem.Update(dt);
+		//
+		//		const int activeCount = particleSystem.GetActiveParticleCount();
+		//		const auto& activeParticles = particleSystem.GetParticles();
+		//		particles_.insert(particles_.end(), activeParticles.begin(), std::next(activeParticles.begin(), activeCount));
+		//		const auto& radi = particleSystem.GetRadi();
+		//		radi_.insert(radi_.end(), radi.begin(), std::next(radi.begin(), activeCount));
+		//	}
+		//}
 	}
 
-	void ParticleSystems::GridInsertParticles(const glm::vec3& worldOffset, GridLevel* childLevel)
+	void ParticleSystems::GridInsertParticleNodes(const glm::vec3& worldOffset, GridLevel* childLevel)
 	{
 		nodeParticleMapping.clear();
 
@@ -216,10 +195,11 @@ namespace Renderer
 
 		for (size_t i = 0; i < particles_.size(); ++i)
 		{
+			//Calculate the minimum and maximum covered nodes
 			const glm::vec3 radiusOffset = glm::vec3(radi_[i]);
 			const glm::vec3 min = particles_[i].position - radiusOffset;
 			const glm::vec3 max = ceil((particles_[i].position + radiusOffset) / cellSize) * cellSize;
-			
+
 			for (float x = min.x; x < max.x; x += cellSize)
 			{
 				for (float y = min.y; y < max.y; y += cellSize)
@@ -234,24 +214,17 @@ namespace Renderer
 		}
 	}
 
-	//Calculates the center of the first texel of the node in grid space
-	glm::vec3 CalcGridOffset(int index, const NodeData& nodeData, GridLevel* parentLevel, float cellSize)
-	{
-		//position of node without parent offset
-		glm::vec3 gridPos = glm::vec3(nodeData.gridPos_[index]) * cellSize;
-		int parentIndex = nodeData.parentIndices_[index];
-
-		glm::vec3 parentOffset = glm::vec3(parentLevel->GetNodeData().gridPos_[parentIndex]) * parentLevel->GetGridCellSize();
-		return gridPos + parentOffset;
-	}
-
 	namespace
 	{
-		glm::ivec3 CalcParentTexel(GridLevel* parentLevel, const NodeData& childNodeData, int childIndexNode)
+		//Calculates the center of the first texel of the node in grid space
+		glm::vec3 CalcGridOffset(int index, const NodeData& nodeData, GridLevel* parentLevel, float cellSize, float texelSize)
 		{
-			const int parentIndexNode = childNodeData.parentIndices_[childIndexNode];
-			const glm::vec3 parentTextureOffset = parentLevel->GetNodeData().imageInfos_[parentIndexNode].image;
-			return parentTextureOffset + glm::vec3(1) + childNodeData.gridPos_[childIndexNode];
+			//position of node without parent offset
+			glm::vec3 gridPos = glm::vec3(nodeData.gridPos_[index]) * cellSize;
+			int parentIndex = nodeData.parentIndices_[index];
+
+			glm::vec3 parentOffset = glm::vec3(parentLevel->GetNodeData().gridPos_[parentIndex]) * parentLevel->GetGridCellSize();
+			return gridPos + parentOffset + texelSize * 0.5f;
 		}
 	}
 
@@ -259,31 +232,32 @@ namespace Renderer
 	{
 		nodeData_.clear();
 		nodeParticleIndices_.clear();
-
+		
 		int particleOffset = 0;
 		const auto& childNodeData = childLevel->GetNodeData();
-
+		
 		for (const auto& nodeParticles : nodeParticleMapping)
 		{
-			const glm::ivec3 imageOffset = childNodeData.imageInfos_[nodeParticles.first].image + 1;
-			
 			Node nodeData;
-			nodeData.gridOffset = CalcGridOffset(nodeParticles.first, childNodeData,
-				parentLevel, childLevel->GetGridCellSize());
-			nodeData.maxParticles = static_cast<int>(nodeParticles.second.size());
+			nodeData.worldOffset = CalcGridOffset(nodeParticles.first, childNodeData,
+				parentLevel, childLevel->GetGridCellSize(), cbData_.texelSize);
+			nodeData.particleCount = static_cast<int>(nodeParticles.second.size());
+			nodeData.imageOffset = childNodeData.GetNodeInfos()[nodeParticles.first].textureOffset;
 			nodeData.particleOffset = particleOffset;
-			nodeData.imageOffset = NodeData::PackTextureOffset(imageOffset);
 			nodeData_.push_back(nodeData);
-
-			particleOffset += nodeData.maxParticles;
-
+			
+			particleOffset += nodeData.particleCount;
 			nodeParticleIndices_.insert(nodeParticleIndices_.end(), nodeParticles.second.begin(), nodeParticles.second.end());
 		}
 	}
 
 	void ParticleSystems::UpdateCBData(const GridLevel* gridLevel)
 	{
-		cbData_.texelSize = gridLevel->GetGridCellSize() / GridConstants::nodeResolution;
+		cbData_.texelSize = gridLevel->GetGridCellSize() / GridConstants::imageResolution;
+
+		const auto& particleValue = GuiPass::GetVolumeState().particleValue;
+		cbData_.textureValue = glm::vec4(particleValue.scattering, particleValue.scattering + particleValue.absorption,
+			particleValue.phaseG, 0.0f);
 	}
 
 	bool ParticleSystems::ResizeGpuResources(std::vector<ResourceResize>& resourceResizes)
@@ -291,13 +265,13 @@ namespace Renderer
 		bool resize = false;
 		for (int i = 0; i < GPU_MAX; ++i)
 		{
-			const auto newSize = CalcSize(i);
-			if (storageBuffers_[i].totalSize < newSize)
+			const auto newSize = CalcStorageBufferSize(static_cast<GpuBufferType>(i));
+			if (storageBuffers_[i].size < newSize)
 			{
 				resize = true;
-				storageBuffers_[i].totalSize = newSize;
+				storageBuffers_[i].size = newSize;
 			}
-			resourceResizes.push_back({ storageBuffers_[i].totalSize, storageBuffers_[i].index });
+			resourceResizes.push_back(storageBuffers_[i]);
 		}
 		return resize;
 	}
@@ -309,30 +283,70 @@ namespace Renderer
 		{
 			const int bufferIndex = storageBuffers_[i].index;
 			auto dataPtr = bufferManager->Ref_Map(bufferIndex, frameIndex, bufferTypeBits);
-
+		
 			void* source = nullptr;
-			VkDeviceSize copySize = 0;
-
+			VkDeviceSize copySize = CalcStorageBufferSize(static_cast<GpuBufferType>(i));
+		
 			switch (i)
 			{
 			case GPU_STORAGE_NODE:
 				source = nodeData_.data();
-				copySize = nodeData_.size() * sizeof(NodeData);
 				break;
 			case GPU_STORAGE_NODE_PARTICLE:
 				source = nodeParticleIndices_.data();
-				copySize = nodeParticleIndices_.size() * sizeof(int);
 				break;
 			case GPU_STORAGE_PARTICLE:
 				source = particles_.data();
-				copySize = particles_.size() * sizeof(Particle);
 				break;
 			default:
 				printf("Invalid storage buffer index %d while updating\n", i);
 			}
-
+		
 			memcpy(dataPtr, source, copySize);
 			bufferManager->Ref_Unmap(bufferIndex, frameIndex, bufferTypeBits);
 		}
 	}
+
+	void ParticleSystems::Dispatch(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex)
+	{
+		const uint32_t dispatchSize = static_cast<uint32_t>(nodeData_.size());
+		if (dispatchSize > 0)
+		{
+			auto& queryPool = Wrapper::QueryPool::GetInstance();
+			queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_PARTICLES, frameIndex);
+
+			vkCmdDispatch(commandBuffer, dispatchSize, 1, 1);
+
+			queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_PARTICLES, frameIndex);
+		}
+
+		ImageManager::BarrierInfo barrierInfo{};
+		barrierInfo.imageIndex = atlasImageIndex_;
+		barrierInfo.type = ImageManager::BARRIER_WRITE_WRITE;
+		auto barriers = imageManager->Barrier({ barrierInfo });
+
+		Wrapper::PipelineBarrierInfo pipelineBarrierInfo{};
+		pipelineBarrierInfo.src = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		pipelineBarrierInfo.dst = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		pipelineBarrierInfo.AddImageBarriers(barriers);
+		Wrapper::AddPipelineBarrier(commandBuffer, pipelineBarrierInfo);
+	}
+
+	VkDeviceSize ParticleSystems::CalcStorageBufferSize(GpuBufferType bufferType)
+	{
+		switch (bufferType)
+		{
+			case GPU_STORAGE_NODE:
+				return sizeof(NodeData) * std::max(nodeData_.size(), 1ull);
+			case GPU_STORAGE_NODE_PARTICLE:
+			{
+				return sizeof(int) * std::max(nodeParticleIndices_.size(), 1ull);
+			}
+			case GPU_STORAGE_PARTICLE:
+				return sizeof(Particle) * std::max(maxParticles_, 1);
+			default:
+				printf("Invalide particle systems buffer type %d\n", bufferType);
+				return 0;
+		}
+	}	
 }

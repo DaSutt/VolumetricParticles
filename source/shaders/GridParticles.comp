@@ -24,35 +24,19 @@ SOFTWARE.
 
 #version 450
 
-const int IMAGE_RESOLUTION = 17;
+#include "ImageOffset.comp"
+#include "GridConstants.comp"
+
 const bool SKIP_PARTICLES = false;
 
 layout(set = 0, binding = 0, rgba16f) uniform image3D imageAtlas_;
 
 layout(set = 0, binding = 1) uniform cbData
 {
+  vec4 textureValue;
   float texelSize;
-  vec3 padding;
+  vec3 PADDING;
 } cb_;
-
-struct NodeData
-{
-  vec3 gridOffset;  
-  int maxParticles;
-  int particleOffset;
-  uint imageOffset;
-  ivec2 padding;
-};
-
-layout(set = 0, binding = 2) buffer perNodeBuffer
-{
-  NodeData data[];
-} nodes_;
-
-layout(set = 0, binding = 3) buffer nodeParticleIndiceBuffer
-{
-  int data[];
-} particleIndices_;
 
 struct ParticleData
 {
@@ -60,76 +44,64 @@ struct ParticleData
   float radiusSquare;
 };
 
-layout(set = 0, binding = 4) buffer perParticleBuffer
+layout(set = 0, binding = 2) buffer perParticleBuffer
 {
   ParticleData data[];
 } particles_;
 
-const uint IMAGE_BIT_OFFSETS[3] = {22, 12, 2};
-const uint IMAGE_BIT_MASKS[2] = { 0x3fffff, 0xfff };
 
-ivec3 UnpackImageOffset(uint imageOffset)
+struct NodeData
 {
-  return ivec3(
-    imageOffset >> IMAGE_BIT_OFFSETS[0],
-    (imageOffset & IMAGE_BIT_MASKS[0]) >> IMAGE_BIT_OFFSETS[1],
-    (imageOffset & IMAGE_BIT_MASKS[1]) >> IMAGE_BIT_OFFSETS[2]);
-}
+  vec3 gridOffset;  
+  int particleCount;
+  int particleOffset;
+  uint imageOffset;
+  vec2 PADDING;
+};
 
+layout(set = 0, binding = 3) buffer perNodeBuffer
+{
+  NodeData data[];
+} nodes_;
+
+layout(set = 0, binding = 4) buffer nodeParticleIndiceBuffer
+{
+  int data[];
+} particleIndices_;
+
+
+//Loop over all nodes and check which texels are covered by the particles per node
 layout(local_size_x = IMAGE_RESOLUTION, local_size_y = IMAGE_RESOLUTION, local_size_z = 1) in;
 void main()
 {
   const int nodeIndex = int(gl_WorkGroupID.x);
   const NodeData currNode = nodes_.data[nodeIndex];
-   
-  //TODO:
-  //replace with correct values instead of hardcoded
-  float scattering = 0.5;
-  float absorption = 0.5;
-  float extinction = scattering + absorption;
-      
-  //loop over all texels of this
+  
   for(int z = 0; z < IMAGE_RESOLUTION; ++z)
   {
-    const ivec3 index = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
-    const vec3 gridPos = currNode.gridOffset + cb_.texelSize * index;    
-        
-    vec4 texValue = vec4(0,0,0,1);
     int particleCount = 0;
-    
+    const ivec3 index = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
+    const vec3 gridPos = currNode.gridOffset + cb_.texelSize * index; 
+
+    vec4 texValue = vec4(0);
     //For each particle check if the texel position in grid space is inside the particle radius
-    for(int i = 0; i < currNode.maxParticles; ++i)
+    for(int i = 0; i < currNode.particleCount; ++i)    
     {
       const ParticleData particle = particles_.data[particleIndices_.data[i + currNode.particleOffset]];
-      
-      if(SKIP_PARTICLES) {
-        const int particleIndex = 13;
-        if(particleIndex != particleIndices_.data[i + currNode.particleOffset])
-        {
-          continue;
-        }
-      }
-      
       const vec3 distanceVector = gridPos - particle.gridPos;
-      
       if(dot(distanceVector, distanceVector) < particle.radiusSquare)
       {
-        //TODO handle the adding of phase functions
-        texValue += vec4(scattering, extinction, 0.0 ,0.0);
+        texValue += cb_.textureValue;
         particleCount++;
-      }
+      }      
     }
     
     if(particleCount > 0)
     {
-      //TODO not correct if multiple particles without scattering, phase function value is averaged
-      texValue.z /= float(particleCount);
+      //texValue.z /= particleCount;
       
-      const ivec3 texelCoord = UnpackImageOffset(currNode.imageOffset) + index; 
-      //if(index.x == 16 || index.x == 0)
-      {
-        //imageStore(imageAtlas_, texelCoord, texValue);
-      }
+      const ivec3 texelCoord = UnpackImageOffset_I(currNode.imageOffset) * IMAGE_RESOLUTION + index; 
+      imageStore(imageAtlas_, texelCoord, texValue);
     }
   }
 }

@@ -332,8 +332,6 @@ namespace Renderer
 		switch (subpass)
     {
 		case COMPUTE_PARTICLES:
-			adaptiveGrid_->UpdateParticles(imageManager, commandBuffer, currFrameIndex);
-			break;
 		case COMPUTE_GLOBAL:
 		case COMPUTE_DEBUG_FILLING:
     case COMPUTE_GROUND_FOG:

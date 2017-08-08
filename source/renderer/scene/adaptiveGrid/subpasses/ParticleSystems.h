@@ -43,81 +43,93 @@ namespace Renderer
 
 	//Container for all particle systems
 	//Adds them to the grid and performs the splatting into the grid
+	//For each node store the particles that cover it and fill the grid accordingly
 	class ParticleSystems
 	{
 	public:
+		//Fill with random particles for testing
 		ParticleSystems();
+		//Set offset of the adaptive grid in world space
 		void SetGridOffset(const glm::vec3& gridOffset);
+		//Resources:
+		//	- Constant buffer with texel size and particle volumetric data
+		//	- Storage buffer for each particle
+		//	- Storage buffer for each node containing particles
+		//	- Storage buffer with all particle indices for the nodes
 		void RequestResources(BufferManager* bufferManager, int frameCount, int atlasImageIndex);
+		//Bindings
+		//	- Out: image atlas
+		//	- In: Constant buffer
+		//	- In: Storage buffer - particles
+		//	- In: Storage buffer - nodes
+		//	- In: Storage buffer - particle indices
 		int GetShaderBinding(ShaderBindingManager* bindingManager, int frameCount);
 
+		//TODO Change the maximum of particles based on the particle systems in the scene
 		void OnLoadScene(const Scene* scene);
-
+		//TODO Update the particle systems
 		void Update(float dt);
-
-		void GridInsertParticles(const glm::vec3& worldOffset, GridLevel* gridLevel);
+		
+		//Loop over all particles and add all nodes into the grid that are covered by one
+		//Store the mapping from nodes to particles
+		void GridInsertParticleNodes(const glm::vec3& worldOffset, GridLevel* gridLevel);
 		//Needs to be called after the grid was updated with the inserted nodes
+		//Fills the storage buffers with data
 		void UpdateGpuData(GridLevel* parentLevel, GridLevel* childLevel, int atlasResolution);
+		//Update the texel size and volumetric data for particles
 		void UpdateCBData(const GridLevel* gridLevel);
+		
 		bool ResizeGpuResources(std::vector<ResourceResize>& resourceResizes);
 		void UpdateGpuResources(BufferManager* bufferManager, int frameIndex);
 
-		int GetDispatchCount() const { return static_cast<int>(nodeData_.size()); }
+		void Dispatch(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex);
 
+		//Used to expose the scene data when exporting the scene to pbrt
 		const auto& GetParticles() const { return particles_; }
 		const auto& GetRadi() const { return radi_; }
 		const auto& GetWorldOffset() const { return gridOffset_; }
 	private:
+		enum GpuBufferType
+		{
+			GPU_STORAGE_PARTICLE,
+			GPU_STORAGE_NODE,
+			GPU_STORAGE_NODE_PARTICLE,
+			GPU_MAX
+		};
 		struct CBData
 		{
+			glm::vec4 textureValue;
 			float texelSize;
 			glm::vec3 padding;
 		};
-
 		struct Node
 		{
-			glm::vec3 gridOffset;
-			int maxParticles;
+			glm::vec3 worldOffset;
+			int particleCount;
 			int particleOffset;
 			uint32_t imageOffset;
-			glm::ivec2 padding;
+			glm::vec2 padding;
 		};
 
-		enum GpuBuffers
-		{
-			GPU_STORAGE_NODE,
-			GPU_STORAGE_NODE_PARTICLE,
-			GPU_STORAGE_PARTICLE,
-			GPU_MAX
-		};
+		VkDeviceSize CalcStorageBufferSize(GpuBufferType bufferType);
 
-		struct GpuResource
-		{
-			int index;
-			VkDeviceSize totalSize;
-		};
-
-		int CalcSize(int bufferType);
-
-		glm::vec3 min;
-		glm::vec3 max;
+		//World space offset of the adaptive grid
 		glm::vec3 gridOffset_;
-		//key node index in childLevel, vector with particle indices
-		std::map<int, std::vector<int>> nodeParticleMapping;
 
+		std::vector<float> radi_;
+		std::vector<Particle> particles_;
 		std::vector<Node> nodeData_;
 		std::vector<int> nodeParticleIndices_;
 
-		std::vector<ParticleSystem> particleSystems_;
-		std::vector<Particle> particles_;
-		std::vector<float> radi_;
-		int maxParticles_ = 1;
+		//Map the child index of each node to the particle indices that intersect with it
+		std::map<int, std::vector<int>> nodeParticleMapping;
+		
+		int debugParticleCount_ = 0;
+		int maxParticles_ = 0;
 
 		CBData cbData_;
 		int cbIndex_ = -1;
-		std::array<GpuResource, GPU_MAX> storageBuffers_;
-		int atlasImageIndex_ = -1;
-
-		int debugParticleCount_ = 0;
+		std::array<ResourceResize, GPU_MAX> storageBuffers_;
+		int atlasImageIndex_ = -1;	
 	};
 }

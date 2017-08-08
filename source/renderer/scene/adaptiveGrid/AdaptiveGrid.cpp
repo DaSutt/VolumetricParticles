@@ -309,6 +309,7 @@ namespace Renderer
 			groundFog_.Dispatch(queueManager, imageManager, bufferManager, commandBuffer, frameIndex);
 		}	break;
 		case GRID_PASS_PARTICLES:
+			particleSystems_.Dispatch(imageManager, commandBuffer, frameIndex);
 			break;
 		case GRID_PASS_DEBUG_FILLING:
 			debugFilling_.Dispatch(imageManager, commandBuffer);
@@ -330,32 +331,7 @@ namespace Renderer
 			break;
 		}
 	}
-
-	void AdaptiveGrid::UpdateParticles(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex)
-	{
-		const int dispatchSize = particleSystems_.GetDispatchCount();
-		if (dispatchSize > 0)
-		{
-			auto& queryPool = Wrapper::QueryPool::GetInstance();
-			queryPool.TimestampStart(commandBuffer, Wrapper::TIMESTAMP_GRID_PARTICLES, frameIndex);
-
-			vkCmdDispatch(commandBuffer, dispatchSize, 1, 1);
-
-			queryPool.TimestampEnd(commandBuffer, Wrapper::TIMESTAMP_GRID_PARTICLES, frameIndex);
-		}
-
-		ImageManager::BarrierInfo barrierInfo{};
-		barrierInfo.imageIndex = imageAtlas_.GetImageIndex();
-		barrierInfo.type = ImageManager::BARRIER_WRITE_WRITE;
-		auto barriers = imageManager->Barrier({ barrierInfo });
-
-		Wrapper::PipelineBarrierInfo pipelineBarrierInfo{};
-		pipelineBarrierInfo.src = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-		pipelineBarrierInfo.dst = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-		pipelineBarrierInfo.AddImageBarriers(barriers);
-		Wrapper::AddPipelineBarrier(commandBuffer, pipelineBarrierInfo);
-	}
-
+	
 	namespace
   {
     uint32_t CalcDispatchSize(uint32_t number, uint32_t multiple)
@@ -529,7 +505,7 @@ namespace Renderer
 		//gridLevels_[2].AddNode({ 254, 256,256 });
 
 		groundFog_.UpdateGridCells(&gridLevels_[1]);
-		particleSystems_.GridInsertParticles(raymarchingData_.gridMinPosition, &gridLevels_[2]);
+		particleSystems_.GridInsertParticleNodes(raymarchingData_.gridMinPosition, &gridLevels_[2]);
 
 		int parentChildOffset = 0;
 		for (auto& level : gridLevels_)

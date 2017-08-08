@@ -80,6 +80,8 @@ namespace Renderer
 			TextureValue groundFogValue;
 			float groundFogNoiseScale;
 
+			TextureValue particleValue;
+
 			float jitteringScale;
       int stepCount;
 			float lightStepDepth;

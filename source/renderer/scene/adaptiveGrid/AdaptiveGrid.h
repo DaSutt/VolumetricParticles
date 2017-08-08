@@ -96,9 +96,7 @@ namespace Renderer
 		void Dispatch(QueueManager* queueManager, ImageManager* imageManager, BufferManager* bufferManager, 
 			VkCommandBuffer commandBuffer, Pass pass, int frameIndex, int level);
 
-		void UpdateParticles(ImageManager* imageManager, VkCommandBuffer commandBuffer, int frameIndex);
-		
-    void Raymarch(ImageManager* imageManager, VkCommandBuffer commandBuffer, uint32_t width, 
+		void Raymarch(ImageManager* imageManager, VkCommandBuffer commandBuffer, uint32_t width, 
 			uint32_t height, int frameIndex);
 		void UpdateDebugTraversal(QueueManager* queueManager, BufferManager* bufferManager, ImageManager* imageManager);
 

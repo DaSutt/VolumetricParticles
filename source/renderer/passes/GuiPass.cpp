@@ -402,6 +402,16 @@ namespace Renderer
 					ImGui::DragFloat("Noise scale", &volumeState_.groundFogNoiseScale, 0.001f, 0.0001f, 1.0f);
 					ImGui::TreePop();
 				}
+				if (ImGui::TreeNode("Particle Data"))
+				{
+					ImGui::DragFloat("Absorption", &volumeState_.particleValue.absorption, 0.01f,
+						0.0f, 1.0f, "%.06f");
+					ImGui::DragFloat("Scattering", &volumeState_.particleValue.scattering, 0.01f,
+						0.0f, 1.0f, "%.06f");
+					ImGui::DragFloat("PhaseG", &volumeState_.particleValue.phaseG, 0.01f,
+						-1.0f, 1.0f);
+					ImGui::TreePop();
+				}
 			}
 
 			if (ImGui::CollapsingHeader("Debug Visualization"))
