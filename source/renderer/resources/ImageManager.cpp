@@ -456,6 +456,7 @@ namespace Renderer
       info.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
       info.minLod = -1000;
       info.maxLod = 1000;
+      info.maxAnisotropy = 1.0f;
       const auto result = vkCreateSampler(device, &info, nullptr, &samplers_[sampler]);
       if (result != VK_SUCCESS)
       {
@@ -476,6 +477,7 @@ namespace Renderer
       info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
       info.minLod = -1000;
       info.maxLod = 1000;
+      info.maxAnisotropy = 1.0f;
       const auto result = vkCreateSampler(device, &info, nullptr, &samplers_[sampler]);
       if (result != VK_SUCCESS)
       {
@@ -496,6 +498,7 @@ namespace Renderer
 			info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 			info.minLod = -1000;
 			info.maxLod = 1000;
+      info.maxAnisotropy = 1.0f;
 			const auto result = vkCreateSampler(device, &info, nullptr, &samplers_[sampler]);
 			if (result != VK_SUCCESS)
 			{

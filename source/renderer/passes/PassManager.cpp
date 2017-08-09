@@ -82,7 +82,7 @@ namespace Renderer
 			imageInfo.format = imageManager->GetDepthImageFormat();
 			imageInfo.type = ImageManager::IMAGE_RESIZE;
 			imageInfo.sampler = ImageManager::SAMPLER_LINEAR;
-			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+			imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 			imageInfo.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			imageInfo.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
 			imageInfo.viewLayout = VK_IMAGE_LAYOUT_GENERAL;
