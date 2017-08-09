@@ -83,7 +83,8 @@ void main()
     const ivec3 index = ivec3(gl_LocalInvocationID.x, gl_LocalInvocationID.y, z);
     const vec3 gridPos = currNode.gridOffset + cb_.texelSize * index; 
 
-    vec4 texValue = vec4(0);
+    const ivec3 texelCoord = UnpackImageOffset_I(currNode.imageOffset) * IMAGE_RESOLUTION + index; 
+    vec4 texValue = imageLoad(imageAtlas_, texelCoord);
     //For each particle check if the texel position in grid space is inside the particle radius
     for(int i = 0; i < currNode.particleCount; ++i)    
     {
@@ -99,8 +100,6 @@ void main()
     if(particleCount > 0)
     {
       //texValue.z /= particleCount;
-      
-      const ivec3 texelCoord = UnpackImageOffset_I(currNode.imageOffset) * IMAGE_RESOLUTION + index; 
       imageStore(imageAtlas_, texelCoord, texValue);
     }
   }

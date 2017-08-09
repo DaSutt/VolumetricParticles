@@ -36,6 +36,7 @@ namespace DebugData
 	int textureAtlas_;
 
 	glm::vec4 raymarchingResults_;
+	float depthImage_ = 0.0f;
 
 	glm::vec4 texture(int imageIndex, const glm::vec3& texCoord)
 	{

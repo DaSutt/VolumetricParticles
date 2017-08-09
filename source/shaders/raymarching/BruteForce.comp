@@ -60,17 +60,15 @@ vec4 Raymarching_BruteForce(const vec3 gridSpaceOrigin, const vec3 direction,
   {
     //Advance to next step
     stepData = NextDepth(stepCount, raymarchData_.maxSteps, 
-      raymarchData_.exponentialScale, stepData.x);
+      raymarchData_.exponentialScale, stepData.x, maxDepth);
     stepCount++;
-    
-    stepData.x = min(stepData.x, maxDepth);
     
     const vec3 currentGridPos = clamp(gridOrigin + direction * stepData.x, 0.00001, 511.9999);
     maxLevelData = CalcMaxLevel(maxLevelData, stepData.x);
     GridStatus status = TraverseGrid(currentGridPos, maxLevelData.currMaxLevel, 1.0f);
     
     accumScatteringTransmittance = IntegrateScatteringTransmittance(
-      accumScatteringTransmittance, status.accumTexValue, direction, 1.0f, stepData.x);
+      accumScatteringTransmittance, status.accumTexValue, direction, 1.0f, stepData.y);
     if(DEBUG_STOP_AT_LEVEL)
     {
       if(status.currentLevel == DEBUG_LEVEL)

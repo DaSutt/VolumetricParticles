@@ -66,6 +66,7 @@ namespace DebugData
 	extern int textureAtlas_;
 
 	extern glm::vec4 raymarchingResults_;
+	extern float depthImage_;
 
 	glm::vec4 texture(int imageIndex, const glm::vec3& texCoord);
 	glm::vec4 texelFetch(int imageIndex, const glm::vec3& texelCoordinate, int lod);

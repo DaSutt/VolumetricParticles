@@ -58,6 +58,7 @@ namespace Renderer
 	GuiPass::ParticleState GuiPass::particleState_ = {};
 	GuiPass::DebugVisState GuiPass::debugVisState_ = {};
 	GuiPass::ConfigState GuiPass::configState_ = {};
+	GuiPass::RaymarchingState GuiPass::raymarchingState_ = {};
 
   GuiPass::MenuState::MenuState() :
     saveConfiguration{ false },
@@ -99,11 +100,14 @@ namespace Renderer
 		stepCount { 200 },
 		lightStepDepth{50.0f},
 		jitteringScale { 0.2f },
-		lodScale { 1.0f },
 		minTransmittance{0.0f},
 		maxDepth{ 500.0f},
 		shadowRayPerLevel{16}
   {}
+
+	GuiPass::RaymarchingState::RaymarchingState() :
+		lodScale { 0.2f }
+	{}
 
 	GuiPass::ParticleState::ParticleState() :
 		particleCount{40},
@@ -412,6 +416,11 @@ namespace Renderer
 						-1.0f, 1.0f);
 					ImGui::TreePop();
 				}
+			}
+
+			if (ImGui::CollapsingHeader("Raymarching Configuration"))
+			{
+				ImGui::DragFloat("LOD Scale", &raymarchingState_.lodScale, 0.01f, 32.0f);
 			}
 
 			if (ImGui::CollapsingHeader("Debug Visualization"))

@@ -80,7 +80,7 @@ void Raymarching(uvec3 invocationID)
     return;
   }
   
-  const float depth = 1.0f;//TODO imageLoad(depthImage_, imagePos).r;
+  const float depth = imageLoad(depthImage_, imagePos).r;
   const vec4 startViewPort = ImageToViewport(imagePos);
   const vec4 endViewPort = startViewPort + vec4(0.0f, 0.0f, depth, 0.0f);
 

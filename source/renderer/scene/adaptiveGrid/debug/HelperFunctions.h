@@ -29,4 +29,5 @@ SOFTWARE.
 namespace DebugData
 {
 	void imageStore(glm::vec4& target, const glm::ivec2& imagePos, const glm::vec4& value);
+	glm::vec4 imageLoad(const float source, const glm::ivec2& imagePos);
 }

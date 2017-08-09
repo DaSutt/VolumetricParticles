@@ -106,8 +106,6 @@ void main()
     const ivec3 offset = ivec3(gl_LocalInvocationID.x, y, gl_LocalInvocationID.y);
     const ivec3 texelPosition = imageOffset + offset;
     
-    imageStore(imageAtlas_, texelPosition, vec4(1,0,0,0));
-    
     //Calculate density based on world space position in the range [0,1]
     const vec3 worldTexelPosition = curr.worldOffset + offset * cb_.texelWorldSize;
     const float density = (snoise(worldTexelPosition * cb_.noiseScale) + 1.0f) * 0.5f;
@@ -115,6 +113,7 @@ void main()
     vec4 currValue = density * fogValue;
     //Phase function parameter is not changed by the density
     currValue.z = cb_.phaseG;
+    currValue += imageLoad(imageAtlas_, texelPosition);
     
     //currValue = vec4(worldTexelPosition / 512.0f, 0.0f);
     currValue = edgeValue ? currValue * cb_.cellFraction : currValue;

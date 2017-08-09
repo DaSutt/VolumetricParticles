@@ -35,4 +35,9 @@ namespace DebugData
 			value.x, value.y, value.z, value.w,
 			imagePos.x, imagePos.y);
 	}
+
+	glm::vec4 imageLoad(const float source, const glm::ivec2& imagePos)
+	{
+		return glm::vec4(source);
+	}
 }

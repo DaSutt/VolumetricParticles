@@ -87,12 +87,17 @@ namespace Renderer
 			float lightStepDepth;
 			bool debugTraversal;
 			glm::vec2 cursorPosition;
-			float lodScale;
 			float minTransmittance;
 			float maxDepth;
 			int shadowRayPerLevel;
       VolumeState();
     };
+
+		struct RaymarchingState
+		{
+			float lodScale;
+			RaymarchingState();
+		};
 
 		struct ParticleState
 		{
@@ -152,6 +157,7 @@ namespace Renderer
     static const VolumeState& GetVolumeState() { return volumeState_; }
 		static const ParticleState& GetParticleState() { return particleState_; }
 		static const DebugVisState& GetDebugVisState() { return debugVisState_; }
+		static const RaymarchingState& GetRaymarchingState() { return raymarchingState_; }
   private:
     enum GraphicSubpasses
     {
@@ -177,5 +183,6 @@ namespace Renderer
 
 		static ConfigState configState_;
 		static DebugVisState debugVisState_;
+		static RaymarchingState raymarchingState_;
   };
 }
